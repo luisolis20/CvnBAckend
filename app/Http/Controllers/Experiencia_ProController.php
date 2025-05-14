@@ -9,11 +9,57 @@ class Experiencia_ProController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return experiencia_profesionale::join('informacionpersonal', 'informacionpersonal.CIInfPer', '=', 'experiencia_profesionales.CIInfPer')
-        ->select('experiencia_profesionales.*') 
-        ->get();
+        try {
+            $query = experiencia_profesionale::select('experiencia_profesionales.*')
+            ->join('informacionpersonal', 'informacionpersonal.CIInfPer', '=', 'experiencia_profesionales.CIInfPer');
+            if ($request->has('all') && $request->all === 'true') {
+                $data = $query->get();
+    
+                // Convertir los datos a UTF-8 válido
+                $data->transform(function ($item) {
+                    $attributes = $item->getAttributes();
+                    foreach ($attributes as $key => $value) {
+                        if (is_string($value)) {
+                            $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                        }
+                    }
+                    return $attributes;
+                });
+    
+                return response()->json(['data' => $data]);
+            }
+    
+            // Paginación por defecto
+            $data = $query->paginate(20);
+    
+            if ($data->isEmpty()) {
+                return response()->json(['error' => 'No se encontraron datos'], 404);
+            }
+    
+            // Convertir los datos de cada página a UTF-8 válido
+            $data->getCollection()->transform(function ($item) {
+                $attributes = $item->getAttributes();
+                foreach ($attributes as $key => $value) {
+                    if (is_string($value)) {
+                        $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                    }
+                }
+                return $attributes;
+            });
+    
+            // Retornar respuesta JSON con metadatos de paginación
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -36,10 +82,38 @@ class Experiencia_ProController extends Controller
      */
     public function show(string $id)
     {
-        return experiencia_profesionale::join('informacionpersonal', 'informacionpersonal.CIInfPer', '=', 'experiencia_profesionales.CIInfPer')
+        $data = experiencia_profesionale::join('informacionpersonal', 'informacionpersonal.CIInfPer', '=', 'experiencia_profesionales.CIInfPer')
         ->where('informacionpersonal.CIInfPer', $id)
         ->select('experiencia_profesionales.*') 
-        ->get();
+        ->paginate(20);
+
+        if ($data->isEmpty()) {
+            return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
+        }
+
+        // Convertir los campos a UTF-8 válido para cada página
+        $data->getCollection()->transform(function ($item) {
+            $attributes = $item->getAttributes();
+            foreach ($attributes as $key => $value) {
+                if (is_string($value)) {
+                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            }
+            return $attributes;
+        });
+
+        // Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
     }
 
     /**

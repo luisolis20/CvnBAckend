@@ -11,9 +11,37 @@ class Experiencia_ProfesionalDocentesController extends Controller
      */
     public function index()
     {
-        return Experiencia_Profesional_D::join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'experiencia_profesional_docentes.CIInfPer')
+        $data = Experiencia_Profesional_D::join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'experiencia_profesional_docentes.CIInfPer')
         ->select('experiencia_profesional_docentes.*') 
-        ->get();
+        ->paginate(20);
+
+        if ($data->isEmpty()) {
+            return response()->json(['error' => 'No se encontraron datos'], 404);
+        }
+
+        // Convertir los campos a UTF-8 válido para cada página
+        $data->getCollection()->transform(function ($item) {
+            $attributes = $item->getAttributes();
+            foreach ($attributes as $key => $value) {
+                if (is_string($value)) {
+                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            }
+            return $attributes;
+        });
+
+        // Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -36,10 +64,38 @@ class Experiencia_ProfesionalDocentesController extends Controller
      */
     public function show(string $id)
     {
-        return Experiencia_Profesional_D::join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'experiencia_profesional_docentes.CIInfPer')
+        $data =  Experiencia_Profesional_D::join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'experiencia_profesional_docentes.CIInfPer')
         ->where('informacionpersonal_d.CIInfPer', $id)
         ->select('experiencia_profesional_docentes.*') 
-        ->get();
+        ->paginate(20);
+
+        if ($data->isEmpty()) {
+            return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
+        }
+
+        // Convertir los campos a UTF-8 válido para cada página
+        $data->getCollection()->transform(function ($item) {
+            $attributes = $item->getAttributes();
+            foreach ($attributes as $key => $value) {
+                if (is_string($value)) {
+                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            }
+            return $attributes;
+        });
+
+        // Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
