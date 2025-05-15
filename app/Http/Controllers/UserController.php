@@ -65,6 +65,7 @@ class UserController extends Controller
     {
         $res = User::find($id);
         if(isset($res)){
+            $res->CIInfPer = $request->CIInfPer;
             $res->name = $request->name;
             $res->email = $request->email;
             $res->password = Hash::make($request->password);

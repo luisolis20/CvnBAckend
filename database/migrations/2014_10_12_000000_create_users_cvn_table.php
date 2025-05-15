@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('users_cvn', function (Blueprint $table) {
             $table->bigIncrements("id");
+            $table->string('CIInfPer')->nullable();
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');

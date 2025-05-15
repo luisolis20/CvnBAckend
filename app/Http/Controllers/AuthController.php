@@ -47,12 +47,13 @@ class AuthController extends Controller
     
             // Crear o actualizar usuario en users_cvn
             $user = User::updateOrCreate(
-                ['email' => $resdocen->ApellInfPer],
+                ['email' => $resdocen->mailPer],
                 [
-                    'name' => $resdocen->CIInfPer,
+                    'name' => $resdocen->ApellInfPer,
+                    'CIInfPer' => $resdocen->CIInfPer,
                     'password' => bcrypt($codigo_dactilar),
-                    'role' => 'Docente',
-                    'estado' => 1, // o el estado que tú definas por defecto
+                    'role' => 'Estudiante',
+                    'estado' => 1,
                 ]
             );
     
@@ -81,9 +82,10 @@ class AuthController extends Controller
     
             // Crear o actualizar usuario en users_cvn
             $user = User::updateOrCreate(
-                ['email' => $res->ApellInfPer],
+                ['email' => $res->mailPer],
                 [
-                    'name' => $res->CIInfPer,
+                    'name' => $res->ApellInfPer,
+                    'CIInfPer' => $res->CIInfPer,
                     'password' => bcrypt($codigo_dactilar),
                     'role' => 'Estudiante',
                     'estado' => 1,
@@ -130,6 +132,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'id' => $user->id,
+                'CIInfPer' => $user->CIInfPer,
                 'Rol' => $user->role,
             ]);
         }

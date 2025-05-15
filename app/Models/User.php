@@ -21,6 +21,7 @@ class User extends Authenticatable implements JWTSubject
     public $table = "users_cvn";
     protected $fillable = [
         'id',
+        'CIInfPer',
         'name',
         'email',
         'password',
