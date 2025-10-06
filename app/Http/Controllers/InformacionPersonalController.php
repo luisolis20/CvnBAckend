@@ -100,7 +100,7 @@ class InformacionPersonalController extends Controller
         $data->getCollection()->transform(function ($item) {
             $attributes = $item->getAttributes();
             foreach ($attributes as $key => $value) {
-                if (is_string($value)) {
+                if (is_string($value) && $key !== 'fotografia') {
                     $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             }
