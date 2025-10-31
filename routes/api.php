@@ -24,6 +24,7 @@ use App\Http\Controllers\Publicacion_Libro_DocenteController;
 use App\Http\Controllers\CapacitacionDocentesController;
 use App\Http\Controllers\DeclaracionPersonalConsulta;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RegistroTituloController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,42 +42,43 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::prefix('cvn')->group(function () {
 
-    Route::apiResource("v1/users", UserController::class);
-    Route::post('/login', [UserController::class, 'login']);
-    Route::post('/login2', [InformacionPersonalController::class, 'login']);
+    //Route::post('/login', [UserController::class, 'login']);
+    //Route::post('/login2', [InformacionPersonalController::class, 'login']);
     Route::post('v1/enviar-correo', [CorreoController::class, 'enviarCorreo']);
     Route::post('v1/enviar-comentario', [EnviarComentarioController::class, 'enviarComentario']);
     Route::post('v1/recuperar-clave', [RecuperarClaveController::class, 'recuperarclave']);
-    Route::put('v1/eliminar/{id}', [UserController::class, 'eliminarus']);
-    Route::apiResource('v1/datos_personales', DatosPersonalesController::class);
-    Route::apiResource('v1/declaracion_personal', DeclaracionPersonalController::class);
-    Route::apiResource('v1/experiencia_profesionale', Experiencia_ProController::class);
-    Route::apiResource('v1/formacion_academica', FormacionAcademicaController::class);
-    Route::apiResource('v1/habilidades_informatica', HabilidadesInformaticaController::class);
-    Route::apiResource('v1/idioma', IdiomaController::class);
-    Route::apiResource('v1/informacion_contacto', InformacionContactoController::class);
-    Route::apiResource('v1/investigacion_publicacione', InvestigacionPublicacionesController::class);
-    Route::apiResource('v1/otros_datos_relevante', OtrosDatosController::class);
-    Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
-    Route::apiResource('v1/cursoscapacitacion', CursoCapacitaciones::class);
-    Route::apiResource('v1/fichasocioeconomica', FichaSocioEconomicaController::class);
-    Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class);
-
-    //Docentes
-
-    Route::apiResource('v1/informacionpersonald', InformacionPersonal_DController::class);
-    Route::apiResource('v1/publicacion_art_docente', Publicacion_articulo_docenteController::class);
-    Route::apiResource('v1/publicacion_lb_docente', Publicacion_Libro_DocenteController::class);
-    Route::apiResource('v1/capacitacion_docente', CapacitacionDocentesController::class);
-
-
+    
+    
     //Login
-
+    
     
     Route::post('login', [AuthController::class, 'login']);
     Route::middleware('auth:api')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('logout', [AuthController::class, 'logout'])->name('logout');
+        Route::apiResource("v1/users", UserController::class);
+        Route::apiResource('v1/formacion_academica', FormacionAcademicaController::class);
+        Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
+        Route::put('v1/eliminar/{id}', [UserController::class, 'eliminarus']);
+        Route::apiResource('v1/datos_personales', DatosPersonalesController::class);
+        Route::apiResource('v1/declaracion_personal', DeclaracionPersonalController::class);
+        Route::apiResource('v1/experiencia_profesionale', Experiencia_ProController::class);
+        Route::apiResource('v1/habilidades_informatica', HabilidadesInformaticaController::class);
+        Route::apiResource('v1/idioma', IdiomaController::class);
+        Route::apiResource('v1/informacion_contacto', InformacionContactoController::class);
+        Route::apiResource('v1/investigacion_publicacione', InvestigacionPublicacionesController::class);
+        Route::apiResource('v1/otros_datos_relevante', OtrosDatosController::class);
+        Route::apiResource('v1/cursoscapacitacion', CursoCapacitaciones::class);
+        Route::apiResource('v1/fichasocioeconomica', FichaSocioEconomicaController::class);
+        Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class);
+        Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog']);
+        
+        //Docentes
+        
+        Route::apiResource('v1/informacionpersonald', InformacionPersonal_DController::class);
+        Route::apiResource('v1/publicacion_art_docente', Publicacion_articulo_docenteController::class);
+        Route::apiResource('v1/publicacion_lb_docente', Publicacion_Libro_DocenteController::class);
+        Route::apiResource('v1/capacitacion_docente', CapacitacionDocentesController::class);
     });
 });

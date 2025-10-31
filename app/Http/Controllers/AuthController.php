@@ -13,6 +13,7 @@ use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Http\Controllers\Controller;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use App\Models\RegistroTitulos;
 
 class AuthController extends Controller
 {
@@ -47,6 +48,8 @@ class AuthController extends Controller
             ->where('email', $CIInfPer)
             ->first();
 
+        $resgraduado = RegistroTitulos::where('ciinfper', $CIInfPer)->first();
+
         if ($resdocen) {
             if (md5($codigo_dactilar) !== $resdocen->ClaveUsu) {
                 return response()->json([
@@ -62,7 +65,7 @@ class AuthController extends Controller
                         'name' => $resdocen->ApellInfPer,
                         'CIInfPer' => $resdocen->CIInfPer,
                         'password' => bcrypt($codigo_dactilar),
-                        'role' => 'Estudiante',
+                        'role' => 'Docente',
                         'estado' => 1,
                     ]
                 );
@@ -80,36 +83,72 @@ class AuthController extends Controller
                 ]);
             }
         } elseif ($res) {
-            if (md5($codigo_dactilar) !== $res->codigo_dactilar) {
-                return response()->json([
-                    'error' => true,
-                    'clave' => 'clave error',
-                    'mensaje' => 'Usuario correcto pero la clave es incorrecta',
-                ], Response::HTTP_UNAUTHORIZED);
-            } else {
+            if($resgraduado){
+                 if (md5($codigo_dactilar) !== $res->codigo_dactilar) {
+                    return response()->json([
+                        'error' => true,
+                        'clave' => 'clave error',
+                        'mensaje' => 'Usuario correcto pero la clave es incorrecta',
+                    ], Response::HTTP_UNAUTHORIZED);
+                }
+        
                 // Crear o actualizar usuario en users_cvn
                 $user = User::updateOrCreate(
                     ['email' => $res->mailPer],
                     [
                         'name' => $res->ApellInfPer,
                         'CIInfPer' => $res->CIInfPer,
-                        'password' => bcrypt($codigo_dactilar),
-                        'role' => 'Estudiante',
+                        'password' => md5($codigo_dactilar),
+                        'role' => 'Estudiante Graduado',
                         'estado' => 1,
                     ]
                 );
-
+        
                 $token = auth()->login($user);
-
+        
                 return response()->json([
                     'mensaje' => 'Autenticación exitosa',
-                    'Rol' => 'Estudiante',
+                    'Graduado' => 'Si',
+                    'Rol' => 'Estudiante Graduado',
                     'CIInfPer' => $res->CIInfPer,
                     'ApellInfPer' => $res->ApellInfPer,
                     'mailPer' => $res->mailPer,
                     'token' => $token,
                     'token_type' => 'bearer'
                 ]);
+            }else{
+
+                if (md5($codigo_dactilar) !== $res->codigo_dactilar) {
+                    return response()->json([
+                        'error' => true,
+                        'clave' => 'clave error',
+                        'mensaje' => 'Usuario correcto pero la clave es incorrecta',
+                    ], Response::HTTP_UNAUTHORIZED);
+                } else {
+                    // Crear o actualizar usuario en users_cvn
+                    $user = User::updateOrCreate(
+                        ['email' => $res->mailPer],
+                        [
+                            'name' => $res->ApellInfPer,
+                            'CIInfPer' => $res->CIInfPer,
+                            'password' => bcrypt($codigo_dactilar),
+                            'role' => 'Estudiante',
+                            'estado' => 1,
+                        ]
+                    );
+    
+                    $token = auth()->login($user);
+    
+                    return response()->json([
+                        'mensaje' => 'Autenticación exitosa',
+                        'Rol' => 'Estudiante',
+                        'CIInfPer' => $res->CIInfPer,
+                        'ApellInfPer' => $res->ApellInfPer,
+                        'mailPer' => $res->mailPer,
+                        'token' => $token,
+                        'token_type' => 'bearer'
+                    ]);
+                }
             }
         } elseif ($user) {
             if ($user->estado !== 1) {
@@ -132,7 +171,7 @@ class AuthController extends Controller
                 'mensaje' => 'Autenticación exitosa',
                 'token' => $token,
                 'token_type' => 'bearer',
-                'expires_in' => auth()->factory()->getTTL() * 60,
+                'expires_in' => config('jwt.ttl') * 60,
                 'name' => $user->name,
                 'email' => $user->email,
                 'id' => $user->id,
@@ -174,7 +213,7 @@ class AuthController extends Controller
             if (!$token) {
                 return response()->json(['error' => 'No hay token'], Response::HTTP_BAD_REQUEST);
             }
-            $nuevo_token = auth()->refresh();
+            $nuevo_token = JWTAuth::refresh();
             JWTAuth::invalidate($token);
             return $this->respondWithToken($nuevo_token);
         } catch (TokenInvalidException $e) {
@@ -188,7 +227,7 @@ class AuthController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
+            'expires_in' => JWTAuth::factory()->getTTL() * 60
         ], Response::HTTP_OK);
     }
 }

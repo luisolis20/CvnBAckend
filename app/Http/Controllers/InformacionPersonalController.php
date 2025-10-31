@@ -6,6 +6,14 @@ use App\Models\User;
 use App\Models\InformacionPersonald;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Models\declaracion_personal;
+use App\Models\experiencia_profesionale;
+use App\Models\formacion_academica;
+use App\Models\habilidades_informatica;
+use App\Models\idioma;
+use App\Models\informacion_contacto;
+use App\Models\investigacion_publicacione;
+use App\Models\otros_datos_relevante;
 
 class InformacionPersonalController extends Controller
 {
@@ -14,7 +22,7 @@ class InformacionPersonalController extends Controller
      */
     public function index(Request $request)
     {
-        try {
+         try {
             // Obtén los datos paginados
             $query = informacionpersonal::select('informacionpersonal.*');
             // Verificar si se solicita todos los datos sin paginación
@@ -88,37 +96,42 @@ class InformacionPersonalController extends Controller
      */
     public function show(string $id)
     {
-        // Aplica paginación al resultado del filtro
-        $data = informacionpersonal::select('informacionpersonal.*')
-        ->where('informacionpersonal.CIInfPer', $id)
-        ->paginate(20);
-        if ($data->isEmpty()) {
-            return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
-        }
+       // Aplica paginación al resultado del filtro
+       $data = informacionpersonal::select('informacionpersonal.*')
+       ->where('informacionpersonal.CIInfPer', $id)
+       ->paginate(20);
+       if ($data->isEmpty()) {
+           return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
+       }
 
-        // Convertir los campos a UTF-8 válido para cada página
+       // Convertir los campos a UTF-8 válido para cada página
         $data->getCollection()->transform(function ($item) {
             $attributes = $item->getAttributes();
+
             foreach ($attributes as $key => $value) {
-                if (is_string($value) && $key !== 'fotografia') {
+                if ($key === 'fotografia' && !empty($value)) {
+                    // ✅ Convertir BLOB a base64
+                    $attributes[$key] = base64_encode($value);
+                } elseif (is_string($value) && $key !== 'fotografia') {
                     $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             }
+
             return $attributes;
         });
 
-        // Retornar la respuesta JSON con los metadatos de paginación
-        try {
-            return response()->json([
-                'data' => $data->items(),
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'total' => $data->total(),
-                'last_page' => $data->lastPage(),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
-        }
+       // Retornar la respuesta JSON con los metadatos de paginación
+       try {
+           return response()->json([
+               'data' => $data->items(),
+               'current_page' => $data->currentPage(),
+               'per_page' => $data->perPage(),
+               'total' => $data->total(),
+               'last_page' => $data->lastPage(),
+           ]);
+       } catch (\Exception $e) {
+           return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+       }
 
        
     }
@@ -249,6 +262,49 @@ class InformacionPersonalController extends Controller
                 'mensaje' => "El Usuario : $CIInfPer no Existe",
             ]);
         }
+    }
+     public function verificar($ci)
+    {
+        // Verificar que exista información personal
+        $infoper = informacionpersonal::where('CIInfPer', $ci)->first();
+
+        if (!$infoper) {
+            return response()->json([
+                'estado' => 'No ha llenado CVN',
+                'mensaje' => 'No existe registro en información personal',
+            ]);
+        }
+
+        // Verificar si tiene datos en las tablas relacionadas
+        $checks = [
+            'declaracion_personal'      => declaracion_personal::where('CIInfPer', $ci)->exists(),
+            'experiencia_profesional'   => experiencia_profesionale::where('CIInfPer', $ci)->exists(),
+            'formacion_academica'       => formacion_academica::where('CIInfPer', $ci)->exists(),
+            'habilidades_informatica'   => habilidades_informatica::where('CIInfPer', $ci)->exists(),
+            'idioma'                    => idioma::where('CIInfPer', $ci)->exists(),
+            'informacion_contacto'      => informacion_contacto::where('CIInfPer', $ci)->exists(),
+            'investigacion_publicacion' => investigacion_publicacione::where('CIInfPer', $ci)->exists(),
+            'otros_datos_relevante'     => otros_datos_relevante::where('CIInfPer', $ci)->exists(),
+        ];
+
+        $totalTablas = count($checks);
+        $totalConDatos = collect($checks)->filter()->count();
+
+        // Determinar el estado del CVN
+        if ($totalConDatos === 0) {
+            $estado = 'No ha llenado CVN';
+        } elseif ($totalConDatos === $totalTablas) {
+            $estado = 'CVN completo';
+        } else {
+            $estado = 'CVN incompleto';
+        }
+
+        return response()->json([
+            'estado' => $estado,
+            'detalle' => $checks,
+            'total_con_datos' => $totalConDatos,
+            'total_tablas' => $totalTablas,
+        ]);
     }
 
 }
