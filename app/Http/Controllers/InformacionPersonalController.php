@@ -139,28 +139,21 @@ class InformacionPersonalController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $CIInfPer)
+    public function update(Request $request, string $id)
     {
-        $res = informacionpersonal::find($CIInfPer);
+        $res = informacionpersonal::find($id);
         if(isset($res)){
-            /*$res->CIInfPer = $request->CIInfPer;
-            $res->ApellInfPer = $request->ApellInfPer;
-            $res->ApellMatInfPer = $request->ApellMatInfPer;
-            $res->NombInfPer = $request->NombInfPer;
-            $res->NacionalidadPer = $request->NacionalidadPer;
-            $res->LugarNacimientoPer = $request->LugarNacimientoPer;
-            $res->FechNacimPer = $request->FechNacimPer;*/
-            $res->codigo_dactilar = md5(trim($request->codigo_dactilar)); 
-            /*$res->GeneroPer = $request->GeneroPer;
-            $res->CiudadPer = $request->CiudadPer;
-            $res->DirecDomicilioPer = $request->DirecDomicilioPer;
-            $res->Telf1InfPer = $request->Telf1InfPer;
-            $res->mailPer = $request->mailPer;
-            $res->fotografia = $request->fotografia;*/
+            if (!empty($request->fotografia)) {
+                $res->fotografia = base64_decode($request->fotografia);
+            }
            
             if($res->save()){
+                $data = $res->toArray();
+                if (!empty($res->fotografia)) {
+                    $data['fotografia'] = base64_encode($res->fotografia);
+                }
                 return response()->json([
-                    'data'=>$res,
+                    'data'=>$data,
                     'mensaje'=>"Actualizado con Éxito!!",
                 ]);
             }
@@ -173,7 +166,7 @@ class InformacionPersonalController extends Controller
         }else{
             return response()->json([
                 'error'=>true,
-                'mensaje'=>" $CIInfPer no Existe",
+                'mensaje'=>" $id no Existe",
             ]);
         }
     }

@@ -130,7 +130,7 @@ class InvestigacionPublicacionesController extends Controller
             $res->publicaciones = $request->publicaciones;
             $res->publicacion_tipo = $request->publicacion_tipo;
             $res->publicacion_titulo = $request->publicacion_titulo;
-            $res->link_publicación = $request->link_publicación;
+            $res->link_publicacion = $request->link_publicacion;
             $res->congreso_evento = $request->congreso_evento;
            
             if($res->save()){

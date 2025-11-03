@@ -73,6 +73,7 @@ Route::prefix('cvn')->group(function () {
         Route::apiResource('v1/fichasocioeconomica', FichaSocioEconomicaController::class);
         Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class);
         Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog']);
+        Route::get('v1/titulogPosgrados/{id}', [RegistroTituloController::class, 'titulogPosgrados']);
         
         //Docentes
         

@@ -10,6 +10,9 @@ class informacionpersonal extends Model
     use HasFactory;
    
     protected $table = 'informacionpersonal';
+    protected $primaryKey = 'CIInfPer';
+    public $incrementing = false;
+    protected $keyType = 'string';
     //public const UPDATED_AT = 'ultima_actualizacion';
     public const CREATED_AT = null;
     protected $fillable = [

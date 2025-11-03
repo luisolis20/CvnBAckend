@@ -15,7 +15,7 @@ class investigacion_publicacione extends Model
         'publicaciones',
         'publicacion_tipo',
         'publicacion_titulo',
-        'link_publicación',
+        'link_publicacion',
         'congreso_evento',
     ];
 
