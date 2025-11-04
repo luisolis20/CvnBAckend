@@ -34,7 +34,10 @@ class RegistroTituloController extends Controller
             ->get();
 
         if ($data->isEmpty()) {
-            return response()->json(['error' => 'No se encontraron interacciones para este emprendimiento'], 404);
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron interacciones para este emprendimiento'
+            ], 200);
         }
 
         $data->transform(function ($item) {
@@ -82,7 +85,10 @@ class RegistroTituloController extends Controller
             ->get();
 
         if ($data->isEmpty()) {
-            return response()->json(['error' => 'No se encontraron títulos registrados para este estudiante'], 404);
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron títulos registrados para este estudiante'
+            ], 200);
         }
 
         // Normalizamos los valores en UTF-8
@@ -131,7 +137,10 @@ class RegistroTituloController extends Controller
             ->get();
 
         if ($data->isEmpty()) {
-            return response()->json(['error' => 'No se encontraron títulos registrados para este estudiante'], 404);
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron títulos registrados para este estudiante'
+            ], 200);
         }
 
         // Normalizamos los valores en UTF-8

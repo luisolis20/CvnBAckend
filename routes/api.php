@@ -25,6 +25,7 @@ use App\Http\Controllers\CapacitacionDocentesController;
 use App\Http\Controllers\DeclaracionPersonalConsulta;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RegistroTituloController;
+use App\Http\Controllers\CvnValidacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +49,7 @@ Route::prefix('cvn')->group(function () {
     Route::post('v1/enviar-comentario', [EnviarComentarioController::class, 'enviarComentario']);
     Route::post('v1/recuperar-clave', [RecuperarClaveController::class, 'recuperarclave']);
     
+    Route::get('v1/verificar/{codigo}', [CvnValidacionController::class, 'verificar']);
     
     //Login
     
@@ -74,6 +76,7 @@ Route::prefix('cvn')->group(function () {
         Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class);
         Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog']);
         Route::get('v1/titulogPosgrados/{id}', [RegistroTituloController::class, 'titulogPosgrados']);
+        Route::post('v1/validar', [CvnValidacionController::class, 'store']);
         
         //Docentes
         

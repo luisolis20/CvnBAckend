@@ -35,7 +35,10 @@ class Experiencia_ProController extends Controller
             $data = $query->paginate(20);
     
             if ($data->isEmpty()) {
-                return response()->json(['error' => 'No se encontraron datos'], 404);
+                return response()->json([
+                    'data' => [],
+                    'message' => 'No se encontraron datos'
+                ], 200);
             }
     
             // Convertir los datos de cada página a UTF-8 válido
@@ -88,7 +91,10 @@ class Experiencia_ProController extends Controller
         ->paginate(20);
 
         if ($data->isEmpty()) {
-            return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron datos para el ID especificado'
+            ], 200);
         }
 
         // Convertir los campos a UTF-8 válido para cada página

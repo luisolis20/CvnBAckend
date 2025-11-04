@@ -28,7 +28,7 @@ class Publicacion_articulo_docenteController extends Controller
      */
     public function show(string $id)
     {
-        return PublicacionLibroDocente::select('publicacion_articulo_docente.*')
+        return PublicacionArticuloDocente::select('publicacion_articulo_docente.*')
         ->where('publicacion_articulo_docente.CIInfPer', $id)
         ->get();
     }
