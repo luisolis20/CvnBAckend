@@ -10,27 +10,34 @@ class CvnValidacionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-       
-    }
+    public function index() {}
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-         $registro = CvnValidacion::create([
-            'CIInfPer' => $request->CIInfPer,
-            'nombres' => $request->nombres,
-            'apellidos' => $request->apellidos,
-            'codigo_unico' => $request->codigo_unico,
-            'fecha_generacion' => now()
-        ]);
+        $registro = CvnValidacion::updateOrCreate(
+            // 🔍 Condición de búsqueda (solo la cédula)
+            ['CIInfPer' => $request->CIInfPer],
+            // 🔄 Datos a actualizar o crear
+            [
+                'nombres' => $request->nombres,
+                'apellidos' => $request->apellidos,
+                'codigo_unico' => $request->codigo_unico,
+                'fecha_generacion' => now(),
+            ]
+        );
 
-        return response()->json(['success' => true, 'data' => $registro]);
+        return response()->json([
+            'success' => true,
+            'mensaje' => $registro->wasRecentlyCreated
+                ? 'Registro de validación creado con éxito.'
+                : 'Registro de validación actualizado correctamente.',
+            'data' => $registro
+        ]);
     }
-    public function verificar($codigo)
+    public function verificar(string $codigo)
     {
         $registro = CvnValidacion::where('codigo_unico', $codigo)->first();
 
@@ -44,7 +51,7 @@ class CvnValidacionController extends Controller
                 'CIInfPer' => $registro->CIInfPer,
                 'nombres' => $registro->nombres,
                 'apellidos' => $registro->apellidos,
-                'fecha_generacion' => $registro->fecha_generacion->format('d/m/Y H:i:s')
+                'fecha_generacion' => $registro->fecha_generacion
             ]
         ]);
     }
@@ -52,10 +59,7 @@ class CvnValidacionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-       
-    }
+    public function show(string $id) {}
 
     /**
      * Update the specified resource in storage.
