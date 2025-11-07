@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\informacionpersonal;
 use App\Models\User;
 use App\Models\InformacionPersonald;
@@ -22,7 +23,7 @@ class InformacionPersonalController extends Controller
      */
     public function index(Request $request)
     {
-         try {
+        try {
             // Obtén los datos paginados
             $query = informacionpersonal::select('informacionpersonal.*');
             // Verificar si se solicita todos los datos sin paginación
@@ -73,7 +74,7 @@ class InformacionPersonalController extends Controller
             return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
         }
     }
-    
+
 
     /**
      * Store a newly created resource in storage.
@@ -81,13 +82,13 @@ class InformacionPersonalController extends Controller
     public function store(Request $request)
     {
         $inputs = $request->input();
-       
-        
-        $inputs["codigo_dactilar"] = md5(trim($request->codigo_dactilar)); 
+
+
+        $inputs["codigo_dactilar"] = md5(trim($request->codigo_dactilar));
         $res = informacionpersonal::create($inputs);
         return response()->json([
-            'data'=>$res,
-            'mensaje'=>"Agregado con Éxito!!",
+            'data' => $res,
+            'mensaje' => "Agregado con Éxito!!",
         ]);
     }
 
@@ -96,15 +97,15 @@ class InformacionPersonalController extends Controller
      */
     public function show(string $id)
     {
-       // Aplica paginación al resultado del filtro
-       $data = informacionpersonal::select('informacionpersonal.*')
-       ->where('informacionpersonal.CIInfPer', $id)
-       ->paginate(20);
-       if ($data->isEmpty()) {
-           return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
-       }
+        // Aplica paginación al resultado del filtro
+        $data = informacionpersonal::select('informacionpersonal.*')
+            ->where('informacionpersonal.CIInfPer', $id)
+            ->paginate(20);
+        if ($data->isEmpty()) {
+            return response()->json(['error' => 'No se encontraron datos para el ID especificado'], 404);
+        }
 
-       // Convertir los campos a UTF-8 válido para cada página
+        // Convertir los campos a UTF-8 válido para cada página
         $data->getCollection()->transform(function ($item) {
             $attributes = $item->getAttributes();
 
@@ -120,20 +121,18 @@ class InformacionPersonalController extends Controller
             return $attributes;
         });
 
-       // Retornar la respuesta JSON con los metadatos de paginación
-       try {
-           return response()->json([
-               'data' => $data->items(),
-               'current_page' => $data->currentPage(),
-               'per_page' => $data->perPage(),
-               'total' => $data->total(),
-               'last_page' => $data->lastPage(),
-           ]);
-       } catch (\Exception $e) {
-           return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
-       }
-
-       
+        // Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -142,32 +141,45 @@ class InformacionPersonalController extends Controller
     public function update(Request $request, string $id)
     {
         $res = informacionpersonal::find($id);
-        if(isset($res)){
+        if (!$res) {
+            return response()->json([
+                'error' => true,
+                'mensaje' => "$id no Existe",
+            ], 404);
+        }
+
+        try {
+            // 🔹 Si viene una foto nueva, la guardamos como binario
             if (!empty($request->fotografia)) {
                 $res->fotografia = base64_decode($request->fotografia);
             }
-           
-            if($res->save()){
+
+            if ($res->save()) {
+                // 🔹 Convertimos a array SIN incluir el blob
                 $data = $res->toArray();
+                unset($data['fotografia']);
+
+                // 🔹 Si tiene foto, la agregamos codificada
                 if (!empty($res->fotografia)) {
                     $data['fotografia'] = base64_encode($res->fotografia);
                 }
+
+                // 🔹 Enviamos la respuesta JSON sin errores UTF-8
                 return response()->json([
-                    'data'=>$data,
-                    'mensaje'=>"Actualizado con Éxito!!",
+                    'data' => $data,
+                    'mensaje' => "Actualizado con Éxito!!",
+                ], 200, [], JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+            } else {
+                return response()->json([
+                    'error' => true,
+                    'mensaje' => "Error al Actualizar",
                 ]);
             }
-            else{
-                return response()->json([
-                    'error'=>true,
-                    'mensaje'=>"Error al Actualizar",
-                ]);
-            }
-        }else{
+        } catch (\Exception $e) {
             return response()->json([
-                'error'=>true,
-                'mensaje'=>" $id no Existe",
-            ]);
+                'error' => true,
+                'mensaje' => 'Error interno: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -178,7 +190,7 @@ class InformacionPersonalController extends Controller
     {
         //
     }
-    public function login(Request $request) 
+    public function login(Request $request)
     {
         $CIInfPer = $request->input('CIInfPer');
         $codigo_dactilar = $request->input('codigo_dactilar');
@@ -186,7 +198,7 @@ class InformacionPersonalController extends Controller
         $resdocen = InformacionPersonald::select('CIInfPer', 'LoginUsu', 'ClaveUsu', 'ApellInfPer', 'mailPer')
             ->where('LoginUsu', $CIInfPer)
             ->first();
-        
+
         $res = informacionpersonal::select('CIInfPer', 'codigo_dactilar', 'ApellInfPer', 'mailPer')
             ->where('CIInfPer', $CIInfPer)
             ->first();
@@ -256,7 +268,7 @@ class InformacionPersonalController extends Controller
             ]);
         }
     }
-     public function verificar($ci)
+    public function verificar($ci)
     {
         // Verificar que exista información personal
         $infoper = informacionpersonal::where('CIInfPer', $ci)->first();
@@ -299,5 +311,4 @@ class InformacionPersonalController extends Controller
             'total_tablas' => $totalTablas,
         ]);
     }
-
 }
