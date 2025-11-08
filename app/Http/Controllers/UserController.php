@@ -29,7 +29,7 @@ class UserController extends Controller
             $inputs['estado']=1;
         }
         
-        $inputs["password"] = Hash::make(trim($request->password)); 
+        $inputs["password"] = md5(trim($request->password)); 
         $res = User::create($inputs);
         return response()->json([
             'data'=>$res,

@@ -15,6 +15,11 @@ class informacionpersonal extends Model
     protected $keyType = 'string';
     //public const UPDATED_AT = 'ultima_actualizacion';
     public const CREATED_AT = null;
+     // 🚫 Ocultamos el campo binario original
+    protected $hidden = ['fotografia'];
+
+    // ✅ Agregamos atributo calculado
+    protected $appends = ['foto_base64'];
     protected $fillable = [
         'CIInfPer',
         'cedula_pasaporte',
@@ -88,7 +93,14 @@ class informacionpersonal extends Model
         'estructuravivienda',
         'tieneelectricidad',
     ];
-    
+     // ✅ Este accesor devuelve la imagen lista para el frontend
+    public function getFotoBase64Attribute()
+    {
+        if ($this->fotografia) {
+            return 'data:image/jpeg;base64,' . base64_encode($this->fotografia);
+        }
+        return null;
+    }
     public function declaracion_personal()
     {
         return $this->hasMany(declaracion_personal::class, 'CIInfPer');

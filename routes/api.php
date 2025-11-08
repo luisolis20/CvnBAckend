@@ -54,12 +54,12 @@ Route::prefix('cvn')->group(function () {
     //Login
     
     
+    Route::apiResource("v1/users", UserController::class);
     Route::post('login', [AuthController::class, 'login']);
     Route::middleware('auth:api')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('logout', [AuthController::class, 'logout'])->name('logout');
-        Route::apiResource("v1/users", UserController::class);
         Route::apiResource('v1/formacion_academica', FormacionAcademicaController::class);
         Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
         Route::put('v1/eliminar/{id}', [UserController::class, 'eliminarus']);

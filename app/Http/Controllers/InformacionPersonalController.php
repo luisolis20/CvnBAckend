@@ -140,47 +140,27 @@ class InformacionPersonalController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $res = informacionpersonal::find($id);
-        if (!$res) {
-            return response()->json([
-                'error' => true,
-                'mensaje' => "$id no Existe",
-            ], 404);
+         $request->validate([
+            'fotografia' => 'required|string'
+        ]);
+
+        $persona = informacionpersonal::findOrFail($id);
+
+        $imagenBase64 = $request->fotografia;
+
+        // Si el string viene con encabezado "data:image/jpeg;base64,", lo eliminamos
+        if (str_starts_with($imagenBase64, 'data:image')) {
+            $imagenBase64 = explode(',', $imagenBase64)[1];
         }
 
-        try {
-            // 🔹 Si viene una foto nueva, la guardamos como binario
-            if (!empty($request->fotografia)) {
-                $res->fotografia = base64_decode($request->fotografia);
-            }
+        $persona->fotografia = base64_decode($imagenBase64);
+        $persona->save();
 
-            if ($res->save()) {
-                // 🔹 Convertimos a array SIN incluir el blob
-                $data = $res->toArray();
-                unset($data['fotografia']);
-
-                // 🔹 Si tiene foto, la agregamos codificada
-                if (!empty($res->fotografia)) {
-                    $data['fotografia'] = base64_encode($res->fotografia);
-                }
-
-                // 🔹 Enviamos la respuesta JSON sin errores UTF-8
-                return response()->json([
-                    'data' => $data,
-                    'mensaje' => "Actualizado con Éxito!!",
-                ], 200, [], JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
-            } else {
-                return response()->json([
-                    'error' => true,
-                    'mensaje' => "Error al Actualizar",
-                ]);
-            }
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => true,
-                'mensaje' => 'Error interno: ' . $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto actualizada correctamente',
+            'foto_base64' => $persona->foto_base64,
+        ]);
     }
 
     /**
@@ -190,6 +170,7 @@ class InformacionPersonalController extends Controller
     {
         //
     }
+    
     public function login(Request $request)
     {
         $CIInfPer = $request->input('CIInfPer');
