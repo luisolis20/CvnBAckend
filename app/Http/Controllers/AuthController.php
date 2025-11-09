@@ -71,6 +71,9 @@ class AuthController extends Controller
                 );
 
                 $token = auth()->login($user);
+                $user->last_login_at = now();
+                $user->is_online = 1;
+                $user->save();
 
                 return response()->json([
                     'mensaje' => 'Autenticación exitosa',
@@ -83,15 +86,15 @@ class AuthController extends Controller
                 ]);
             }
         } elseif ($res) {
-            if($resgraduado){
-                 if (md5($codigo_dactilar) !== $res->codigo_dactilar) {
+            if ($resgraduado) {
+                if (md5($codigo_dactilar) !== $res->codigo_dactilar) {
                     return response()->json([
                         'error' => true,
                         'clave' => 'clave error',
                         'mensaje' => 'Usuario correcto pero la clave es incorrecta',
                     ], Response::HTTP_UNAUTHORIZED);
                 }
-        
+
                 // Crear o actualizar usuario en users_cvn
                 $user = User::updateOrCreate(
                     ['email' => $res->mailPer],
@@ -103,9 +106,12 @@ class AuthController extends Controller
                         'estado' => 1,
                     ]
                 );
-        
+
                 $token = auth()->login($user);
-        
+                $user->last_login_at = now();
+                $user->is_online = 1;
+                $user->save();
+
                 return response()->json([
                     'mensaje' => 'Autenticación exitosa',
                     'Graduado' => 'Si',
@@ -116,7 +122,7 @@ class AuthController extends Controller
                     'token' => $token,
                     'token_type' => 'bearer'
                 ]);
-            }else{
+            } else {
 
                 if (md5($codigo_dactilar) !== $res->codigo_dactilar) {
                     return response()->json([
@@ -136,9 +142,12 @@ class AuthController extends Controller
                             'estado' => 1,
                         ]
                     );
-    
+
                     $token = auth()->login($user);
-    
+                    $user->last_login_at = now();
+                    $user->is_online = 1;
+                    $user->save();
+
                     return response()->json([
                         'mensaje' => 'Autenticación exitosa',
                         'Rol' => 'Estudiante',
@@ -158,7 +167,7 @@ class AuthController extends Controller
                 ], Response::HTTP_UNAUTHORIZED);
             }
 
-            if (!Hash::check($codigo_dactilar, $user->password)) {
+            if (md5($codigo_dactilar) !== $user->password) {
                 return response()->json([
                     'error' => true,
                     'mensaje' => 'Usuario correcto pero la clave es incorrecta',
@@ -166,6 +175,9 @@ class AuthController extends Controller
             }
 
             $token = auth()->login($user);
+            $user->last_login_at = now();
+            $user->is_online = 1;
+            $user->save();
 
             return response()->json([
                 'mensaje' => 'Autenticación exitosa',
@@ -192,12 +204,24 @@ class AuthController extends Controller
     }
     public function logout()
     {
-        auth()->logout();
+        //auth()->logout();
         try {
             $token = JWTAuth::getToken();
+
             if (!$token) {
                 return response()->json(['error' => 'No hay token'], Response::HTTP_BAD_REQUEST);
             }
+
+            // ✅ Obtener usuario antes de invalidar token o cerrar sesión
+            $user = JWTAuth::authenticate($token);
+
+            if ($user) {
+                $user->is_online = 0;
+                $user->last_logout_at = now();
+                $user->save();
+            }
+
+            // ✅ Invalidar token después
             JWTAuth::invalidate($token);
             return response()->json(['message' => 'Has cerrado sesion'], Response::HTTP_OK);
         } catch (TokenInvalidException $e) {
