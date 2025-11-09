@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\curso_capacitacion;
 use App\Models\informacionpersonal;
 use App\Models\User;
 use App\Models\InformacionPersonald;
@@ -15,6 +16,9 @@ use App\Models\idioma;
 use App\Models\informacion_contacto;
 use App\Models\investigacion_publicacione;
 use App\Models\otros_datos_relevante;
+use App\Models\FichaSocioeconomica;
+use App\Models\RegistroTitulos;
+
 
 class InformacionPersonalController extends Controller
 {
@@ -34,7 +38,16 @@ class InformacionPersonalController extends Controller
                 $data->transform(function ($item) {
                     $attributes = $item->getAttributes();
                     foreach ($attributes as $key => $value) {
-                        if (is_string($value)) {
+                        if ($key === 'fotografia' && !empty($value)) {
+                            // 🔥 Detectar tipo (opcional)
+                            $mime = finfo_buffer(finfo_open(), $value, FILEINFO_MIME_TYPE);
+                            if (strpos($mime, 'image') === false) {
+                                $mime = 'image/jpeg'; // Valor por defecto
+                            }
+
+                            // ✅ Codificar correctamente para el navegador
+                            $attributes[$key] = "data:$mime;base64," . base64_encode($value);
+                        } elseif (is_string($value) && $key !== 'fotografia') {
                             $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                         }
                     }
@@ -140,7 +153,7 @@ class InformacionPersonalController extends Controller
      */
     public function update(Request $request, string $id)
     {
-         $request->validate([
+        $request->validate([
             'fotografia' => 'required|string'
         ]);
 
@@ -170,7 +183,7 @@ class InformacionPersonalController extends Controller
     {
         //
     }
-    
+
     public function login(Request $request)
     {
         $CIInfPer = $request->input('CIInfPer');
@@ -247,6 +260,89 @@ class InformacionPersonalController extends Controller
                 'error' => true,
                 'mensaje' => "El Usuario : $CIInfPer no Existe",
             ]);
+        }
+    }
+    public function getCvCompleto($id)
+    {
+        try {
+            $cv = [];
+
+            // ✅ Información personal (con foto base64)
+            $infoper = InformacionPersonal::where('CIInfPer', $id)->first();
+
+            if ($infoper) {
+                $attributes = $infoper->getAttributes();
+
+                foreach ($attributes as $key => $value) {
+                    if ($key === 'fotografia' && !empty($value)) {
+                        $attributes[$key] = base64_encode($value);
+                    } elseif (is_string($value) && $key !== 'fotografia') {
+                        $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                    }
+                }
+
+                $cv['informacion_personal'] = $attributes;
+            } else {
+                $cv['informacion_personal'] = null;
+            }
+
+            // Formación académica
+            $cv['formacion_academica'] = formacion_academica::where('CIInfPer', $id)->get();
+
+            // Ficha socioeconómica (por si se usa)
+            $cv['ficha_socioeconomica'] = FichaSocioeconomica::where('CIInfPer', $id)->first();
+
+            // Experiencia profesional
+            $cv['experiencias_profesionales'] = experiencia_profesionale::where('CIInfPer', $id)->get();
+
+            // Investigación y publicaciones
+            $cv['investigacion_publicaciones'] = investigacion_publicacione::where('CIInfPer', $id)->get();
+
+            // Idiomas
+            $cv['idiomas'] = Idioma::where('CIInfPer', $id)->get();
+
+            // Habilidades informáticas
+            $cv['habilidades_informaticas'] = habilidades_informatica::where('CIInfPer', $id)->get();
+
+            // Cursos y capacitaciones
+            $cv['cursos_capacitacion'] = curso_capacitacion::where('CIInfPer', $id)->get();
+
+            // Otros datos relevantes
+            $cv['otros_datos_relevantes'] = otros_datos_relevante::where('CIInfPer', $id)->get();
+
+            // Información de contacto
+            $cv['informacion_contacto'] = informacion_contacto::where('CIInfPer', $id)->get();
+
+            // Declaración personal
+            $cv['declaracion_personal'] = declaracion_personal::where('CIInfPer', $id)->first();
+
+            // Títulos de grado y posgrado (de sistema externo)
+            $cv['titulos_grado'] = RegistroTitulos::select(
+                'registrotitulos.*',
+                'carrera.*'
+            )
+                ->join('carrera', 'carrera.idCarr', '=', 'registrotitulos.idcarr')
+                ->where('registrotitulos.ciinfper', $id)
+                ->where('carrera.idfacultad', '!=', 6)->get();
+            $cv['titulos_posgrado'] = RegistroTitulos::select(
+                'registrotitulos.*',
+                'carrera.*'
+            )
+                ->join('carrera', 'carrera.idCarr', '=', 'registrotitulos.idcarr')
+                ->where('registrotitulos.ciinfper', $id)
+                ->where('carrera.idfacultad', 6)->get();
+
+            // Retornar todo en una sola respuesta JSON
+            return response()->json([
+                'success' => true,
+                'data' => $cv
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los datos del CV completo',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
     public function verificar($ci)

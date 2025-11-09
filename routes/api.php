@@ -50,6 +50,8 @@ Route::prefix('cvn')->group(function () {
     Route::post('v1/recuperar-clave', [RecuperarClaveController::class, 'recuperarclave']);
     
     Route::get('v1/verificar/{codigo}', [CvnValidacionController::class, 'verificar']);
+    Route::get('v1/verficiar_cvn/{codigo}', [InformacionPersonalController::class, 'verificar']);
+    Route::get('v1/cvcompleto/{codigo}', [InformacionPersonalController::class, 'getCvCompleto']);
     
     //Login
     
