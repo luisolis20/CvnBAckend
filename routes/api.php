@@ -52,10 +52,12 @@ Route::prefix('cvn')->group(function () {
     Route::get('v1/verificar/{codigo}', [CvnValidacionController::class, 'verificar']);
     Route::get('v1/verficiar_cvn/{codigo}', [InformacionPersonalController::class, 'verificar']);
     Route::get('v1/cvcompleto/{codigo}', [InformacionPersonalController::class, 'getCvCompleto']);
+    Route::get('v1/obtenerdata', [InformacionPersonalController::class, 'obtenerdata']);
+    Route::put('v1/actualizarFoto/{codigo}', [InformacionPersonalController::class, 'actualizarFoto']);
     
     //Login
     
-    
+    Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
     Route::post('login', [AuthController::class, 'login']);
     Route::middleware('auth:api')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
@@ -63,7 +65,7 @@ Route::prefix('cvn')->group(function () {
         Route::get('logout', [AuthController::class, 'logout'])->name('logout');
         Route::apiResource("v1/users", UserController::class);
         Route::apiResource('v1/formacion_academica', FormacionAcademicaController::class);
-        Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
+        //Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
         Route::put('v1/eliminar/{id}', [UserController::class, 'eliminarus']);
         Route::apiResource('v1/datos_personales', DatosPersonalesController::class);
         Route::apiResource('v1/declaracion_personal', DeclaracionPersonalController::class);

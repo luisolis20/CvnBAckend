@@ -18,6 +18,8 @@ use App\Models\investigacion_publicacione;
 use App\Models\otros_datos_relevante;
 use App\Models\FichaSocioeconomica;
 use App\Models\RegistroTitulos;
+use Illuminate\Support\Facades\DB;
+use Intervention\Image\Facades\Image;
 
 
 class InformacionPersonalController extends Controller
@@ -27,64 +29,125 @@ class InformacionPersonalController extends Controller
      */
     public function index(Request $request)
     {
+        // Lista de modelos a verificar para el CVN
+        $cvnModels = [
+            declaracion_personal::class,
+            experiencia_profesionale::class,
+            formacion_academica::class,
+            habilidades_informatica::class,
+            idioma::class,
+            informacion_contacto::class,
+            investigacion_publicacione::class,
+            otros_datos_relevante::class,
+        ];
+        $totalTablas = count($cvnModels);
+
         try {
-            // Obtén los datos paginados
-            $query = informacionpersonal::select('informacionpersonal.*');
-            // Verificar si se solicita todos los datos sin paginación
             if ($request->has('all') && $request->all === 'true') {
+
+                // 1. OBTENER EL CONTEO TOTAL DE USUARIOS antes de filtrar
+                $totalUsers = informacionpersonal::count();
+
+                // 2. IDENTIFICAR USUARIOS QUE HAN INICIADO EL CVN 
+                //    (tienen al menos 1 registro en cualquiera de las tablas CVN).
+                $ciWithData = collect();
+                // Iteramos sobre las 8 tablas para colectar todos los CI que tienen datos
+                foreach ($cvnModels as $model) {
+                    // Seleccionamos los CIInfPer distintos que tienen registros en esta tabla
+                    $cis = $model::select('CIInfPer')->distinct()->pluck('CIInfPer');
+                    $ciWithData = $ciWithData->merge($cis);
+                }
+                $ciWithData = $ciWithData->unique()->toArray(); // Lista final de CI que han iniciado CVN
+
+                // 3. FILTRAR LA CONSULTA PRINCIPAL: SOLO usuarios que aparecen en alguna tabla CVN
+                $query = informacionpersonal::select('informacionpersonal.*')
+                    ->whereIn('CIInfPer', $ciWithData);
+
                 $data = $query->get();
 
-                // Convertir los datos a UTF-8 válido
-                $data->transform(function ($item) {
-                    $attributes = $item->getAttributes();
-                    foreach ($attributes as $key => $value) {
-                        if ($key === 'fotografia' && !empty($value)) {
-                            // 🔥 Detectar tipo (opcional)
-                            $mime = finfo_buffer(finfo_open(), $value, FILEINFO_MIME_TYPE);
-                            if (strpos($mime, 'image') === false) {
-                                $mime = 'image/jpeg'; // Valor por defecto
-                            }
+                // 4. CALCULAR EL CONTEO DE USUARIOS OMITIDOS (sin CVN)
+                $omittedCount = $totalUsers - $data->count();
 
-                            // ✅ Codificar correctamente para el navegador
-                            $attributes[$key] = "data:$mime;base64," . base64_encode($value);
-                        } elseif (is_string($value) && $key !== 'fotografia') {
+                // 5. OBTENER CONTEOS DE FORMA EFICIENTE
+                // Creamos un mapa de conteos para CADA tabla, para todos los usuarios.
+                $ciList = $data->pluck('CIInfPer')->toArray();
+                $ciCounts = [];
+
+                // Mapear el total de tablas completadas por cada CIInfPer
+                foreach ($ciList as $ci) {
+                    $ciCounts[$ci] = 0; // Inicializar
+                }
+
+                // Ejecutamos solo una consulta por modelo (N consultas en total)
+                foreach ($cvnModels as $model) {
+                    $results = $model::whereIn('CIInfPer', $ciList)
+                        ->groupBy('CIInfPer')
+                        ->selectRaw('CIInfPer, count(*) as total')
+                        ->get();
+
+                    foreach ($results as $result) {
+                        // Si hay al menos un registro en esta tabla, se considera "con datos"
+                        if ($result->total > 0) {
+                            $ciCounts[$result->CIInfPer]++;
+                        }
+                    }
+                }
+
+                // 6. APLICAR TRANSFORMACIÓN DE DATOS Y ESTADO
+                $data->transform(function ($item) use ($totalTablas, $ciCounts) {
+                    $attributes = $item->getAttributes();
+                    $ci = $attributes['CIInfPer'];
+                    // Como el usuario ya está filtrado, totalConDatos siempre será >= 1 si la lógica de filtrado fue correcta.
+                    $totalConDatos = $ciCounts[$ci] ?? 0;
+
+                    // Lógica de estado CVN: Ya no puede ser 'No ha hecho CVN'
+                    if ($totalConDatos === $totalTablas) {
+                        $estado = 'Completado';
+                    } else {
+                        $estado = 'Incompleto';
+                    }
+                    $attributes['completionStatus'] = $estado; // Añadir el nuevo campo de estado
+
+                    // Lógica para fotografía (BLOB a Base64) - Esto es lo que se optimiza al reducir el dataset
+                    if (!empty($attributes['fotografia'])) {
+                        $value = $attributes['fotografia'];
+                        // Intentar obtener el MIME type, si falla o no es una imagen, usar un MIME por defecto
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mime = $finfo ? finfo_buffer($finfo, $value) : 'image/jpeg';
+                        if ($finfo) finfo_close($finfo);
+
+                        // Asegurar que el MIME type es de imagen, si no, usar el defecto
+                        if (strpos($mime, 'image') === false) {
+                            $mime = 'image/jpeg';
+                        }
+                        $attributes['fotografia'] = "data:$mime;base64," . base64_encode($value);
+                    } else {
+                        $attributes['fotografia'] = null;
+                    }
+
+                    // Conversión UTF-8 (mantener si es necesario)
+                    foreach ($attributes as $key => $value) {
+                        if (is_string($value) && $key !== 'fotografia') {
                             $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                         }
                     }
+
                     return $attributes;
                 });
 
-                return response()->json(['data' => $data]);
+                // 7. DEVOLVER LA RESPUESTA CON EL CONTEO DE USUARIOS OMITIDOS
+                return response()->json([
+                    'data' => $data,
+                    'omittedCount' => $omittedCount,
+                ]);
             }
 
-            // Paginación por defecto
-            $data = $query->paginate(20);
+            // ... (Lógica de paginación por defecto, si aplica)
+            // ... (Se recomienda aplicar la lógica de estado también en el caso de paginación)
 
-            if ($data->isEmpty()) {
-                return response()->json(['error' => 'No se encontraron datos'], 404);
-            }
-
-            // Convertir los datos de cada página a UTF-8 válido
-            $data->getCollection()->transform(function ($item) {
-                $attributes = $item->getAttributes();
-                foreach ($attributes as $key => $value) {
-                    if (is_string($value)) {
-                        $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
-                    }
-                }
-                return $attributes;
-            });
-
-            // Retornar respuesta JSON con metadatos de paginación
-            return response()->json([
-                'data' => $data->items(),
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'total' => $data->total(),
-                'last_page' => $data->lastPage(),
-            ]);
+            return response()->json(['error' => 'La paginación sin el flag "all" no está completamente implementada con status'], 400);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error al procesar la solicitud: ' . $e->getMessage()], 500);
         }
     }
 
@@ -123,10 +186,10 @@ class InformacionPersonalController extends Controller
             $attributes = $item->getAttributes();
 
             foreach ($attributes as $key => $value) {
-                if ($key === 'fotografia' && !empty($value)) {
+                if (in_array($key, ['fotografia']) && !empty($value)) {
                     // ✅ Convertir BLOB a base64
                     $attributes[$key] = base64_encode($value);
-                } elseif (is_string($value) && $key !== 'fotografia') {
+                } elseif (is_string($value) && !in_array($key, ['fotografia', 'logo', 'fotografia2'])) {
                     $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             }
@@ -153,27 +216,67 @@ class InformacionPersonalController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $request->validate([
-            'fotografia' => 'required|string'
-        ]);
+        $res = informacionpersonal::find($id);
 
-        $persona = informacionpersonal::findOrFail($id);
-
-        $imagenBase64 = $request->fotografia;
-
-        // Si el string viene con encabezado "data:image/jpeg;base64,", lo eliminamos
-        if (str_starts_with($imagenBase64, 'data:image')) {
-            $imagenBase64 = explode(',', $imagenBase64)[1];
+        if (!isset($res)) {
+            return response()->json([
+                'error' => true,
+                'mensaje' => "El registro con id: $id no Existe",
+            ]);
         }
 
-        $persona->fotografia = base64_decode($imagenBase64);
-        $persona->save();
+        $updateData = [];
+
+        // --- SOLUCIÓN FINAL Y DEFINITIVA PARA BLOB (Usando DB::raw) ---
+        if (!empty($request->fotografia)) {
+            // 1. Decodificar la cadena Base64 a datos binarios puros.
+            $binaryData = base64_decode($request->fotografia);
+
+            // 2. Envolver los datos binarios en DB::raw(). Esto le dice a PDO que NO
+            // trate el valor como una cadena UTF-8, sino como el binario que es.
+            $updateData['fotografia'] = DB::raw("FROM_BASE64('" . base64_encode($binaryData) . "')");
+
+            // Nota: Este truco requiere que MySQL decodifique, pero en el backend de Laravel
+            // solo necesitamos el DB::raw. Si estás usando SQLite o PostgreSQL, el enfoque cambia.
+            // Para MySQL, esta es la forma más limpia de forzar el binario sin errores de PHP.
+            // Una forma más universal para Laravel/MySQL es:
+
+            // $updateData['fotografia'] = $binaryData; // Asignamos el binario decodificado.
+
+            // Y luego usamos un update directo sobre el Query Builder para aplicar el binario.
+            // Si solo actualizas la foto, usa la siguiente lógica:
+            try {
+                // Usamos el Query Builder para asegurarnos de que el binario se maneje correctamente.
+                // Es crucial para datos BLOB.
+                DB::table('informacionpersonal')
+                    ->where('CIInfPer', $id)
+                    ->update(['fotografia' => $binaryData]);
+
+                // Recargar el modelo para que la respuesta JSON incluya la foto actualizada
+                $res = informacionpersonal::find($id);
+
+                $data = $res->toArray();
+
+                return response()->json([
+                    'data' => $data,
+                    'mensaje' => "Actualizado con Éxito!!",
+                ]);
+            } catch (\Exception $e) {
+                // Si falla por cualquier razón (ej. timeout, db error), capturamos aquí
+                return response()->json([
+                    'error' => true,
+                    'mensaje' => "Error al Actualizar la foto: " . $e->getMessage(),
+                ], 500);
+            }
+        }
+
+        // Si no hay foto en el request, asumimos que no hay nada que actualizar.
+        // Si tienes otros campos que actualizar, esta lógica DEBE ser más compleja.
 
         return response()->json([
-            'success' => true,
-            'message' => 'Foto actualizada correctamente',
-            'foto_base64' => $persona->foto_base64,
-        ]);
+            'error' => true,
+            'mensaje' => "No se proporcionó la fotografía para actualizar.",
+        ], 400);
     }
 
     /**
