@@ -39,15 +39,19 @@ class AuthController extends Controller
         // Buscar en InformacionPersonald (Docente)
         $resdocen = InformacionPersonald::select('CIInfPer', 'LoginUsu', 'ClaveUsu', 'ApellInfPer', 'mailPer')
             ->where('LoginUsu', $CIInfPer)
+            ->where('StatusPer', 1)
             ->first();
+        // Buscar en InformacionPersonal (Estudiante)
         $res = informacionpersonal::select('CIInfPer', 'codigo_dactilar', 'ApellInfPer', 'mailPer')
             ->where('CIInfPer', $CIInfPer)
             ->first();
-
+        // Buscar en Usuarios (Admin, etc)
         $user = User::select('id', 'name', 'email', 'role', 'estado', 'password')
             ->where('email', $CIInfPer)
             ->first();
 
+
+        // Buscar en RegistroTitulos (Estudiante Graduado)
         $resgraduado = RegistroTitulos::where('ciinfper', $CIInfPer)->first();
 
         if ($resdocen) {

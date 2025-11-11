@@ -22,6 +22,7 @@ class curso_capacitacion extends Model
        'fecha_fin_curso',
        'dias_curso',
         'horas_curso',
+        'certificado_curso',
     ];
 
     public function infoper()

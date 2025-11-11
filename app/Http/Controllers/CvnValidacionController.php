@@ -17,7 +17,15 @@ class CvnValidacionController extends Controller
      */
     public function store(Request $request)
     {
-        $registro = CvnValidacion::updateOrCreate(
+         $inputs = $request->input();
+        $inputs['fecha_generacion'] = now();
+        $res = CvnValidacion::create($inputs);
+            return response()->json([
+                'data'=>$res,
+                'mensaje'=>"Agregado con Éxito!!",
+            ]);
+        
+        /*$registro = CvnValidacion::updateOrCreate(
             // 🔍 Condición de búsqueda (solo la cédula)
             ['CIInfPer' => $request->CIInfPer],
             // 🔄 Datos a actualizar o crear
@@ -35,7 +43,7 @@ class CvnValidacionController extends Controller
                 ? 'Registro de validación creado con éxito.'
                 : 'Registro de validación actualizado correctamente.',
             'data' => $registro
-        ]);
+        ]);*/
     }
     public function verificar(string $codigo)
     {

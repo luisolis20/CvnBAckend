@@ -143,6 +143,7 @@ class CursoCapacitaciones extends Controller
             $res->fecha_fin_curso = $request->fecha_fin_curso;
             $res->dias_curso = $request->dias_curso;
             $res->horas_curso = $request->horas_curso;
+            $res->certificado_curso = $request->certificado_curso;
             if($res->save()){
                 return response()->json([
                     'data'=>$res,
