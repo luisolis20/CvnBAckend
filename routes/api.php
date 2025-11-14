@@ -54,7 +54,7 @@ Route::prefix('cvn')->group(function () {
     Route::get('v1/cvcompleto/{codigo}', [InformacionPersonalController::class, 'getCvCompleto']);
     Route::get('v1/obtenerdata', [InformacionPersonalController::class, 'obtenerdata']);
     Route::put('v1/actualizarFoto/{codigo}', [InformacionPersonalController::class, 'actualizarFoto']);
-    
+    Route::get('/v1/informacionpersonal/{ci}/foto', [InformacionPersonalController::class, 'getFotografia']);
     //Login
     
     //Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);

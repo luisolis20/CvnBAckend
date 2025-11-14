@@ -20,6 +20,7 @@ use App\Models\FichaSocioeconomica;
 use App\Models\RegistroTitulos;
 use Illuminate\Support\Facades\DB;
 use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Response;
 
 
 class InformacionPersonalController extends Controller
@@ -32,13 +33,14 @@ class InformacionPersonalController extends Controller
         // Lista de modelos a verificar para el CVN
         $cvnModels = [
             declaracion_personal::class,
-            experiencia_profesionale::class,
             formacion_academica::class,
-            habilidades_informatica::class,
-            idioma::class,
-            informacion_contacto::class,
+            experiencia_profesionale::class,
             investigacion_publicacione::class,
+            habilidades_informatica::class,
+            idioma::class, // Asumiendo que esta también es una tabla CVN
+            curso_capacitacion::class,
             otros_datos_relevante::class,
+            informacion_contacto::class,
         ];
         $totalTablas = count($cvnModels);
 
@@ -49,18 +51,21 @@ class InformacionPersonalController extends Controller
                 $totalUsers = informacionpersonal::count();
 
                 // 2. IDENTIFICAR USUARIOS QUE HAN INICIADO EL CVN 
-                //    (tienen al menos 1 registro en cualquiera de las tablas CVN).
                 $ciWithData = collect();
-                // Iteramos sobre las 8 tablas para colectar todos los CI que tienen datos
                 foreach ($cvnModels as $model) {
-                    // Seleccionamos los CIInfPer distintos que tienen registros en esta tabla
                     $cis = $model::select('CIInfPer')->distinct()->pluck('CIInfPer');
                     $ciWithData = $ciWithData->merge($cis);
                 }
-                $ciWithData = $ciWithData->unique()->toArray(); // Lista final de CI que han iniciado CVN
+                $ciWithData = $ciWithData->unique()->toArray();
 
                 // 3. FILTRAR LA CONSULTA PRINCIPAL: SOLO usuarios que aparecen en alguna tabla CVN
-                $query = informacionpersonal::select('informacionpersonal.*')
+                //    *** CAMBIO CLAVE: Excluimos la columna 'fotografia' para evitar agotamiento de memoria. ***
+                $query = informacionpersonal::select(
+                    'CIInfPer',
+                    'ApellInfPer',
+                    'ApellMatInfPer',
+                    'NombInfPer'
+                )
                     ->whereIn('CIInfPer', $ciWithData);
 
                 $data = $query->get();
@@ -69,16 +74,10 @@ class InformacionPersonalController extends Controller
                 $omittedCount = $totalUsers - $data->count();
 
                 // 5. OBTENER CONTEOS DE FORMA EFICIENTE
-                // Creamos un mapa de conteos para CADA tabla, para todos los usuarios.
                 $ciList = $data->pluck('CIInfPer')->toArray();
-                $ciCounts = [];
+                $ciCounts = array_fill_keys($ciList, 0); // Inicializar todos los CI a 0
 
                 // Mapear el total de tablas completadas por cada CIInfPer
-                foreach ($ciList as $ci) {
-                    $ciCounts[$ci] = 0; // Inicializar
-                }
-
-                // Ejecutamos solo una consulta por modelo (N consultas en total)
                 foreach ($cvnModels as $model) {
                     $results = $model::whereIn('CIInfPer', $ciList)
                         ->groupBy('CIInfPer')
@@ -86,8 +85,7 @@ class InformacionPersonalController extends Controller
                         ->get();
 
                     foreach ($results as $result) {
-                        // Si hay al menos un registro en esta tabla, se considera "con datos"
-                        if ($result->total > 0) {
+                        if ($result->total > 0 && isset($ciCounts[$result->CIInfPer])) {
                             $ciCounts[$result->CIInfPer]++;
                         }
                     }
@@ -97,10 +95,9 @@ class InformacionPersonalController extends Controller
                 $data->transform(function ($item) use ($totalTablas, $ciCounts) {
                     $attributes = $item->getAttributes();
                     $ci = $attributes['CIInfPer'];
-                    // Como el usuario ya está filtrado, totalConDatos siempre será >= 1 si la lógica de filtrado fue correcta.
                     $totalConDatos = $ciCounts[$ci] ?? 0;
 
-                    // Lógica de estado CVN: Ya no puede ser 'No ha hecho CVN'
+                    // Lógica de estado CVN
                     if ($totalConDatos === $totalTablas) {
                         $estado = 'Completado';
                     } else {
@@ -108,26 +105,12 @@ class InformacionPersonalController extends Controller
                     }
                     $attributes['completionStatus'] = $estado; // Añadir el nuevo campo de estado
 
-                    // Lógica para fotografía (BLOB a Base64) - Esto es lo que se optimiza al reducir el dataset
-                    if (!empty($attributes['fotografia'])) {
-                        $value = $attributes['fotografia'];
-                        // Intentar obtener el MIME type, si falla o no es una imagen, usar un MIME por defecto
-                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                        $mime = $finfo ? finfo_buffer($finfo, $value) : 'image/jpeg';
-                        if ($finfo) finfo_close($finfo);
-
-                        // Asegurar que el MIME type es de imagen, si no, usar el defecto
-                        if (strpos($mime, 'image') === false) {
-                            $mime = 'image/jpeg';
-                        }
-                        $attributes['fotografia'] = "data:$mime;base64," . base64_encode($value);
-                    } else {
-                        $attributes['fotografia'] = null;
-                    }
+                    // *** IMPORTANTE: La columna 'fotografia' ahora es NULL en este listado. ***
+                    $attributes['fotografia'] = null;
 
                     // Conversión UTF-8 (mantener si es necesario)
                     foreach ($attributes as $key => $value) {
-                        if (is_string($value) && $key !== 'fotografia') {
+                        if (is_string($value)) {
                             $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                         }
                     }
@@ -142,11 +125,11 @@ class InformacionPersonalController extends Controller
                 ]);
             }
 
-            // ... (Lógica de paginación por defecto, si aplica)
-            // ... (Se recomienda aplicar la lógica de estado también en el caso de paginación)
-
+            // ... (Tu lógica de paginación por defecto, si aplica)
             return response()->json(['error' => 'La paginación sin el flag "all" no está completamente implementada con status'], 400);
         } catch (\Exception $e) {
+            // En caso de que el error de memoria persista por otras causas, puedes usar 'report'
+            // \Illuminate\Support\Facades\Log::error("Error en index CVN: " . $e->getMessage());
             return response()->json(['error' => 'Error al procesar la solicitud: ' . $e->getMessage()], 500);
         }
     }
@@ -277,6 +260,48 @@ class InformacionPersonalController extends Controller
             'error' => true,
             'mensaje' => "No se proporcionó la fotografía para actualizar.",
         ], 400);
+    }
+     public function getFotografia($ci)
+    {
+        try {
+            // 1. Obtener SÓLO la columna 'fotografia' para el CI específico
+            $persona = informacionpersonal::where('CIInfPer', $ci)
+                ->select('fotografia')
+                ->first();
+
+            // 2. Verificar si el usuario existe y si tiene foto
+            if (!$persona || empty($persona->fotografia)) {
+                // Devolver una respuesta HTTP 404 o una foto predeterminada pequeña
+                return response()->json(['error' => 'Fotografía no encontrada.'], 404);
+            }
+
+            $fotoBinaria = $persona->fotografia;
+
+            // 3. Determinar el MIME type (es un paso crítico, asume que es JPEG/PNG si no tienes metadata)
+            // Opcional: Si almacenas el MIME type en la DB, úsalo aquí. Si no, usa finfo para detectarlo (esto es más seguro).
+            $mime = 'image/jpeg'; // MIME type por defecto
+
+            // Intenta determinar el MIME type si el ambiente lo permite y no satura
+            if (extension_loaded('fileinfo')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $detectedMime = finfo_buffer($finfo, $fotoBinaria);
+                finfo_close($finfo);
+
+                if ($detectedMime && strpos($detectedMime, 'image') === 0) {
+                    $mime = $detectedMime;
+                }
+            }
+
+            // 4. Devolver la imagen como una respuesta binaria (STREAM)
+            // Esto evita convertir el BLOB entero a Base64 en el servidor, lo que previene la saturación de memoria.
+            return Response::make($fotoBinaria, 200)
+                ->header('Content-Type', $mime)
+                ->header('Content-Disposition', 'inline; filename="foto_' . $ci . '"');
+        } catch (\Exception $e) {
+            // Manejo de errores
+            return response()->json(['error' => 'Error al obtener la fotografía: ' . $e->getMessage()], 500);
+        }
+         
     }
 
     /**
