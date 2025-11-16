@@ -17,14 +17,14 @@ class CvnValidacionController extends Controller
      */
     public function store(Request $request)
     {
-         $inputs = $request->input();
+        $inputs = $request->input();
         $inputs['fecha_generacion'] = now();
         $res = CvnValidacion::create($inputs);
-            return response()->json([
-                'data'=>$res,
-                'mensaje'=>"Agregado con Éxito!!",
-            ]);
-        
+        return response()->json([
+            'data' => $res,
+            'mensaje' => "Agregado con Éxito!!",
+        ]);
+
         /*$registro = CvnValidacion::updateOrCreate(
             // 🔍 Condición de búsqueda (solo la cédula)
             ['CIInfPer' => $request->CIInfPer],
@@ -67,7 +67,43 @@ class CvnValidacionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id) {}
+    public function show(string $id)
+    {
+        $data = CvnValidacion::where('CIInfPer', $id)
+            ->select('cvn_validaciones.*')
+            ->paginate(20);
+
+        if ($data->isEmpty()) {
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron datos'
+            ], 200);
+        }
+
+        // Convertir los campos a UTF-8 válido para cada página
+        $data->getCollection()->transform(function ($item) {
+            $attributes = $item->getAttributes();
+            foreach ($attributes as $key => $value) {
+                if (is_string($value)) {
+                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            }
+            return $attributes;
+        });
+
+        // Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
+    }
 
     /**
      * Update the specified resource in storage.

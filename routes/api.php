@@ -81,6 +81,7 @@ Route::prefix('cvn')->group(function () {
         Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog']);
         Route::get('v1/titulogPosgrados/{id}', [RegistroTituloController::class, 'titulogPosgrados']);
         Route::post('v1/validar', [CvnValidacionController::class, 'store']);
+        Route::get('v1/historialDe/{id}', [CvnValidacionController::class, 'show']);
         
         //Docentes
         

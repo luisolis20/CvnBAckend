@@ -17,6 +17,7 @@ class investigacion_publicacione extends Model
         'publicacion_titulo',
         'link_publicacion',
         'congreso_evento',
+        'grupo_investigacion',
     ];
 
     public function infoper()

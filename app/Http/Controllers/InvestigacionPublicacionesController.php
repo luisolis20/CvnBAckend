@@ -138,6 +138,7 @@ class InvestigacionPublicacionesController extends Controller
             $res->publicacion_titulo = $request->publicacion_titulo;
             $res->link_publicacion = $request->link_publicacion;
             $res->congreso_evento = $request->congreso_evento;
+            $res->grupo_investigacion = $request->grupo_investigacion;
            
             if($res->save()){
                 return response()->json([
