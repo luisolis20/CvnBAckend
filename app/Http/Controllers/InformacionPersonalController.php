@@ -193,6 +193,91 @@ class InformacionPersonalController extends Controller
             return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
         }
     }
+    public function getCVNstatusInd(string $id)
+    {
+        $cvnModels = [
+            declaracion_personal::class,
+            formacion_academica::class,
+            experiencia_profesionale::class,
+            investigacion_publicacione::class,
+            habilidades_informatica::class,
+            idioma::class, // Asumiendo que esta también es una tabla CVN
+            curso_capacitacion::class,
+            otros_datos_relevante::class,
+            informacion_contacto::class,
+        ];
+        // 1. Obtener la información personal del usuario
+        $query = informacionpersonal::select('informacionpersonal.*')
+            ->where('informacionpersonal.CIInfPer', $id);
+            
+        // Aplicamos la paginación a la consulta, aunque solo haya un registro
+        $data = $query->paginate(20);
+
+        if ($data->isEmpty()) {
+            // El usuario no existe en la tabla principal.
+            return response()->json([
+                'error' => 'No se encontraron datos para el ID especificado',
+                'completionStatus' => 'No iniciado' // Nuevo estado
+            ], 404);
+        }
+
+        // 2. Obtener el número total de tablas del CVN
+        $totalTablas = count($this-> $cvnModels);
+        $totalConDatos = 0;
+
+        // 3. Contar en cuántas tablas el usuario tiene al menos 1 registro
+        foreach ($this-> $cvnModels as $model) {
+            // Usamos where('CIInfPer', $id) en lugar de donde('CIInfPer', $id)
+            // para compatibilidad con Eloquent y Laravel.
+            if ($model::where('CIInfPer', $id)->exists()) {
+                $totalConDatos++;
+            }
+        }
+
+        // 4. Determinar el estado del CVN
+        if ($totalConDatos === 0) {
+            $estado = 'No iniciado'; // Existe en InformacionPersonal, pero no en CVN
+        } elseif ($totalConDatos === $totalTablas) {
+            $estado = 'Completado';
+        } else {
+            $estado = 'Incompleto';
+        }
+
+        // 5. Aplicar Transformación y Codificación (incluyendo base64 para la foto)
+        $data->getCollection()->transform(function ($item) use ($estado) {
+            $attributes = $item->getAttributes();
+            
+            // Añadir el estado de CVN
+            $attributes['completionStatus'] = $estado;
+
+            foreach ($attributes as $key => $value) {
+                if (in_array($key, ['fotografia']) && !empty($value)) {
+                    // Convertir BLOB a base64
+                    $attributes[$key] = base64_encode($value);
+                } elseif (is_string($value) && !in_array($key, ['fotografia', 'logo', 'fotografia2'])) {
+                    // Conversión UTF-8 (mantener si es necesario)
+                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            }
+
+            return $attributes;
+        });
+
+        // 6. Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'completionStatus' => $estado, // Incluir el estado fuera del array de datos para facilitar el uso
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
+
+    }
 
     /**
      * Update the specified resource in storage.
