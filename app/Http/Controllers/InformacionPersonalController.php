@@ -209,44 +209,41 @@ class InformacionPersonalController extends Controller
         $totalTablas = count($cvnModels);
         $totalConDatos = 0;
 
-        // 1. Obtener la información personal del usuario
-        // Se selecciona 'informacionpersonal.*' y se aplica paginación
-        $query = informacionpersonal::select('informacionpersonal.*')
-            ->where('informacionpersonal.CIInfPer', $id);
+        try {
+            // 1. Obtener la información personal del usuario (un solo registro)
+            // Usamos first() para obtener el objeto directamente.
+            $data = informacionpersonal::select('informacionpersonal.*')
+                ->where('CIInfPer', $id)
+                ->first();
 
-        $data = $query->paginate(20);
-
-        if ($data->isEmpty()) {
-            // El usuario no existe en la tabla principal de información personal
-            return response()->json([
-                'error' => 'No se encontraron datos para el ID especificado',
-                'completionStatus' => 'No registrado' // Estado para usuario no encontrado
-            ], 404);
-        }
-
-        // 2. Contar en cuántas tablas el usuario tiene al menos 1 registro
-        foreach ($cvnModels as $model) {
-            // Verifica si existe al menos un registro para este CI en la tabla CVN
-            if ($model::where('CIInfPer', $id)->exists()) {
-                $totalConDatos++;
+            if (!$data) {
+                // El usuario no existe en la tabla principal de información personal
+                return response()->json([
+                    'error' => 'No se encontraron datos para el ID especificado',
+                    'completionStatus' => 'No registrado', // Estado para usuario no encontrado
+                    'tablesWithData' => 0,
+                ], 404);
             }
-        }
 
-        // 3. Determinar el estado del CVN
-        if ($totalConDatos === 0) {
-            $estado = 'No iniciado'; // Existe el usuario, pero no tiene datos en el CVN
-        } elseif ($totalConDatos === $totalTablas) {
-            $estado = 'Completado';
-        } else {
-            $estado = 'Incompleto';
-        }
+            // 2. Contar en cuántas tablas el usuario tiene al menos 1 registro
+            foreach ($cvnModels as $model) {
+                // Verifica si existe al menos un registro para este CI en la tabla CVN
+                if ($model::where('CIInfPer', $id)->exists()) {
+                    $totalConDatos++;
+                }
+            }
 
-        // 4. Aplicar Transformación, Inyección de Estado y OMISIÓN de 'fotografia'
-        $data->getCollection()->transform(function ($item) use ($estado) {
-            $attributes = $item->getAttributes();
+            // 3. Determinar el estado del CVN
+            if ($totalConDatos === 0) {
+                $estado = 'No iniciado'; // Existe el usuario, pero no tiene datos en el CVN
+            } elseif ($totalConDatos === $totalTablas) {
+                $estado = 'Completado';
+            } else {
+                $estado = 'Incompleto';
+            }
 
-            // Inyectar el estado de CVN
-            $attributes['completionStatus'] = $estado;
+            // 4. Aplicar Transformación, Inyección de Estado y OMISIÓN de 'fotografia'
+            $attributes = $data->getAttributes();
 
             // ✅ Omitir la columna 'fotografia' ELIMINANDO la clave del array
             if (isset($attributes['fotografia'])) {
@@ -255,27 +252,19 @@ class InformacionPersonalController extends Controller
 
             // Conversión UTF-8 para las demás cadenas de texto
             foreach ($attributes as $key => $value) {
-                // Se excluye 'fotografia', 'logo', 'fotografia2' de la conversión (si son BLOBs)
                 if (is_string($value) && !in_array($key, ['logo', 'fotografia2'])) {
                     $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             }
 
-            return $attributes;
-        });
-
-        // 5. Retornar la respuesta JSON
-        try {
+            // 5. Retornar la respuesta JSON simplificada
             return response()->json([
-                'data' => $data->items(),
-                'completionStatus' => $estado, // Incluir el estado para fácil acceso en el frontend
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'total' => $data->total(),
-                'last_page' => $data->lastPage(),
+                'data' => $attributes, // El registro transformado del usuario
+                'completionStatus' => $estado,
+                'tablesWithData' => $totalConDatos, // El número de tablas con datos
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error al procesar la solicitud: ' . $e->getMessage()], 500);
         }
     }
 
