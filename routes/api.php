@@ -81,6 +81,7 @@ Route::prefix('cvn')->group(function () {
         Route::apiResource('v1/fichasocioeconomica', FichaSocioEconomicaController::class);
         Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class);
         Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog']);
+        Route::get('v1/checkUpdateStatus/{CIInfPer}', [InformacionPersonalController::class, 'checkUpdateStatus']);
         Route::get('v1/titulogPosgrados/{id}', [RegistroTituloController::class, 'titulogPosgrados']);
         Route::post('v1/validar', [CvnValidacionController::class, 'store']);
         Route::get('v1/historialDe/{id}', [CvnValidacionController::class, 'show']);

@@ -21,6 +21,7 @@ use App\Models\RegistroTitulos;
 use Illuminate\Support\Facades\DB;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Response;
+use Carbon\Carbon;
 
 
 class InformacionPersonalController extends Controller
@@ -148,6 +149,90 @@ class InformacionPersonalController extends Controller
         return response()->json([
             'data' => $res,
             'mensaje' => "Agregado con Éxito!!",
+        ]);
+    }
+    public function checkUpdateStatus(Request $request, $CIInfPer)
+    {
+        // El tiempo mínimo requerido de antigüedad para la actualización: 5 meses (1 mes de gracia antes de los 6 meses).
+        // Usaremos 150 días (aproximadamente 5 meses) para evitar problemas con la duración exacta de los meses.
+        $testDaysToUpdate = 1;
+        $updateThresholdDate = Carbon::now()->subDays($testDaysToUpdate);
+        $updateRequired = false;
+        $tablesToCheck = [
+            'declaracion_personal' => 'declaracion_personal',
+            'experiencia_profesional' => 'experiencia_profesionales',
+            'formacion_academica' => 'formacion_academicas',
+            'habilidades_informatica' => 'habilidades_informaticas',
+            'idioma' => 'idiomas',
+            'informacion_contacto' => 'informacion_contactos',
+            'curso_capacitaciones' => 'curso_capacitaciones',
+            'investigacion_publicaciones' => 'investigacion_publicaciones',
+            'otros_datos' => 'otros_datos_relevantes',
+            // 'fichasocioeconomica' se omite si no requiere actualización forzosa
+        ];
+
+        // 1. Verificar si el usuario existe
+        $usuario = informacionpersonal::find($CIInfPer);
+
+        if (!$usuario) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Usuario no encontrado.'
+            ], 404);
+        }
+
+        $hasData = false;
+        $needsUpdateDetails = [];
+
+        // 2. Iterar sobre las relaciones para verificar datos y actualizar
+        foreach ($tablesToCheck as $relationName => $tableName) {
+            // Cargar la relación. Si hay resultados, significa que el usuario tiene datos en esa tabla.
+            $data = $usuario->$relationName;
+
+            if ($data->isNotEmpty()) {
+                $hasData = true;
+
+                // Encontrar el registro más reciente basado en updated_at
+                $lastUpdatedRecord = $data->sortByDesc('updated_at')->first();
+
+                if ($lastUpdatedRecord) {
+                    $lastUpdate = Carbon::parse($lastUpdatedRecord->updated_at);
+
+                    // Comprobar si la última actualización es anterior al umbral
+                    if ($lastUpdate->lt($updateThresholdDate)) {
+                        $updateRequired = true;
+                        $needsUpdateDetails[] = [
+                            'table' => $tableName,
+                            'last_update' => $lastUpdate->toDateString(),
+                            'days_since_update' => $lastUpdate->diffInDays(Carbon::now())
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 3. Devolver la respuesta basada en el estado
+        if (!$hasData) {
+            // El usuario no tiene datos en ninguna tabla relacionada
+            return response()->json([
+                'status' => 'required',
+                'message' => 'Debe completar el Curriculun Vitae Normalizado (CVN). No se encontraron datos en sus secciones.'
+            ]);
+        }
+
+        if ($updateRequired) {
+            // El usuario tiene datos, pero al menos una sección requiere actualización
+            return response()->json([
+                'status' => 'update_required',
+                'message' => 'Se requiere la actualización obligatoria de sus datos. La última actualización de algunas secciones supera los 5 meses.',
+                'details' => $needsUpdateDetails
+            ]);
+        }
+
+        // El usuario tiene datos y están actualizados (última actualización es reciente)
+        return response()->json([
+            'status' => 'updated',
+            'message' => 'Sus datos están actualizados y cumplen con el requisito de actualización de 6 meses.'
         ]);
     }
 
