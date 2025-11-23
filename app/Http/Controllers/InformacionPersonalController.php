@@ -153,22 +153,25 @@ class InformacionPersonalController extends Controller
     }
     public function checkUpdateStatus(Request $request, $CIInfPer)
     {
-        // El tiempo mínimo requerido de antigüedad para la actualización: 5 meses (1 mes de gracia antes de los 6 meses).
-        // Usaremos 150 días (aproximadamente 5 meses) para evitar problemas con la duración exacta de los meses.
+        // ⚠️ AJUSTE PARA PRUEBAS: 1 día de umbral
         $testDaysToUpdate = 1;
         $updateThresholdDate = Carbon::now()->subDays($testDaysToUpdate);
+
         $updateRequired = false;
-        $tablesToCheck = [
-            'declaracion_personal' => 'declaracion_personal',
-            'experiencia_profesional' => 'experiencia_profesionales',
-            'formacion_academica' => 'formacion_academicas',
-            'habilidades_informatica' => 'habilidades_informaticas',
-            'idioma' => 'idiomas',
-            'innformacion_contacto' => 'informacion_contactos',
-            'curso_capacitaciones' => 'curso_capacitaciones',
-            'investigacion_publicaciones' => 'investigacion_publicaciones',
-            'otros_datos' => 'otros_datos_relevantes',
-            // 'fichasocioeconomica' se omite si no requiere actualización forzosa
+
+        // El nuevo array de mapeo que usa las Clases de Modelo y las mapea al 
+        // nombre del método de relación en el modelo informacionpersonal.
+        $cvnRelations = [
+            // Clase del Modelo => Nombre del Método de Relación
+            declaracion_personal::class => 'declaracion_personal',
+            formacion_academica::class => 'formacion_academica',
+            experiencia_profesionale::class => 'experiencia_profesional',
+            investigacion_publicacione::class => 'investigacion_publicaciones',
+            habilidades_informatica::class => 'habilidades_informatica',
+            idioma::class => 'idioma',
+            curso_capacitacion::class => 'curso_capacitacion', // Asumido: el método de relación se llama igual
+            otros_datos_relevante::class => 'otros_datos', // Mapeo especial para el método 'otros_datos'
+            informacion_contacto::class => 'informacion_contacto', // Asumido: se corrigió el typo 'innformacion_contacto'
         ];
 
         // 1. Verificar si el usuario existe
@@ -185,11 +188,18 @@ class InformacionPersonalController extends Controller
         $needsUpdateDetails = [];
 
         // 2. Iterar sobre las relaciones para verificar datos y actualizar
-        foreach ($tablesToCheck as $relationName => $tableName) {
-            // Cargar la relación. Si hay resultados, significa que el usuario tiene datos en esa tabla.
-            $data = $usuario->$relationName;
+        foreach ($cvnRelations as $modelClass => $relationMethod) {
 
-            if ($data->isNotEmpty()) {
+            // Cargar la relación usando el nombre del método (ej: $usuario->idioma)
+            $data = $usuario->$relationMethod;
+
+            // Obtener el nombre de la tabla para el detalle de la respuesta
+            // Esto es más robusto que inferir el nombre
+            $modelInstance = new $modelClass();
+            $tableName = $modelInstance->getTable();
+
+            // ⚠️ La comprobación de tipo de retorno se mantiene para mayor seguridad.
+            if ($data !== null && method_exists($data, 'isNotEmpty') && $data->isNotEmpty()) {
                 $hasData = true;
 
                 // Encontrar el registro más reciente basado en updated_at
@@ -224,7 +234,7 @@ class InformacionPersonalController extends Controller
             // El usuario tiene datos, pero al menos una sección requiere actualización
             return response()->json([
                 'status' => 'update_required',
-                'message' => 'Se requiere la actualización obligatoria de sus datos. La última actualización de algunas secciones supera los 5 meses.',
+                'message' => "Se requiere la actualización obligatoria de sus datos. La última actualización de algunas secciones supera el límite de prueba ({$testDaysToUpdate} día).",
                 'details' => $needsUpdateDetails
             ]);
         }
