@@ -164,7 +164,7 @@ class InformacionPersonalController extends Controller
             'formacion_academica' => 'formacion_academicas',
             'habilidades_informatica' => 'habilidades_informaticas',
             'idioma' => 'idiomas',
-            'informacion_contacto' => 'informacion_contactos',
+            'innformacion_contacto' => 'informacion_contactos',
             'curso_capacitaciones' => 'curso_capacitaciones',
             'investigacion_publicaciones' => 'investigacion_publicaciones',
             'otros_datos' => 'otros_datos_relevantes',
