@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\declaracion_personal;
 use Illuminate\Http\Request;
+use App\Models\AcademicoDocente;
 
-class Declaracion_PersonalDocentesController extends Controller
+class Academico_DocenteController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -13,7 +13,7 @@ class Declaracion_PersonalDocentesController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = declaracion_personal::select('declaracion_personals.*')
+            $query = AcademicoDocente::select('declaracion_personals.*')
                 ->join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'informacionpersonal_d.CIInfPer');
             // Verificar si se solicita todos los datos sin paginación
             if ($request->has('all') && $request->all === 'true') {
@@ -72,14 +72,7 @@ class Declaracion_PersonalDocentesController extends Controller
      */
     public function store(Request $request)
     {
-        $inputs = $request->input();
-
-
-        $res = declaracion_personal::create($inputs);
-        return response()->json([
-            'data' => $res,
-            'mensaje' => "Agregado con Éxito!!",
-        ]);
+        //
     }
 
     /**
@@ -87,41 +80,7 @@ class Declaracion_PersonalDocentesController extends Controller
      */
     public function show(string $id)
     {
-        $data = declaracion_personal::join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'declaracion_personals.CIInfPer')
-            ->where('informacionpersonal_d.CIInfPer', $id)
-            ->select('declaracion_personals.*')
-            ->paginate(20);
-
-        if ($data->isEmpty()) {
-            return response()->json([
-                'data' => [],
-                'message' => 'No se encontraron datos para el ID especificado'
-            ], 200);
-        }
-
-        // Convertir los campos a UTF-8 válido para cada página
-        $data->getCollection()->transform(function ($item) {
-            $attributes = $item->getAttributes();
-            foreach ($attributes as $key => $value) {
-                if (is_string($value)) {
-                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
-                }
-            }
-            return $attributes;
-        });
-
-        // Retornar la respuesta JSON con los metadatos de paginación
-        try {
-            return response()->json([
-                'data' => $data->items(),
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'total' => $data->total(),
-                'last_page' => $data->lastPage(),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
-        }
+        //
     }
 
     /**
@@ -129,27 +88,7 @@ class Declaracion_PersonalDocentesController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $res = declaracion_personal::find($id);
-        if (isset($res)) {
-            $res->CIInfPer = $request->CIInfPer;
-            $res->texto = $request->texto;
-            if ($res->save()) {
-                return response()->json([
-                    'data' => $res,
-                    'mensaje' => "Actualizado con Éxito!!",
-                ]);
-            } else {
-                return response()->json([
-                    'error' => true,
-                    'mensaje' => "Error al Actualizar",
-                ]);
-            }
-        } else {
-            return response()->json([
-                'error' => true,
-                'mensaje' => "Declaracion personal con id: $id no Existe",
-            ]);
-        }
+        //
     }
 
     /**

@@ -11,10 +11,8 @@ class InformacionPersonald extends Model
     protected $table = 'informacionpersonal_d';
 
     protected $primaryKey = 'CIInfPer';
-
     public $incrementing = false;
-
-    public $timestamps = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'CIInfPer', 'cedula_pasaporte', 'TipoDocInfPer', 'ApellInfPer', 'ApellMatInfPer', 'NombInfPer', 'NacionalidadPer', 
@@ -27,7 +25,8 @@ class InformacionPersonald extends Model
         'idparroquiacasa', 'referenciacasa', 'sectorcasa', 'barriocasa', 'viviendapropia', 'padre', 'madre', 'conyuge', 
         'nacionalidadetnia', 'fechaingreso', 'fechasalida', 'hd_posicion', 'tipoaccion', 'denominacion', 'area', 'cargo'
     ];
-    public function publicacionlibrodocente()
+    protected $hidden = ['ClaveUsu', 'fotografia']; 
+    /*public function publicacionlibrodocente()
     {
         return $this->hasMany(PublicacionLibroDocente::class, 'CIInfPer');
     }
@@ -54,6 +53,6 @@ class InformacionPersonald extends Model
     public function Informacion_Referencia_D()
     {
         return $this->hasMany(Informacion_Referencia_D::class, 'CIInfPer');
-    }
+    }*/
    
 }

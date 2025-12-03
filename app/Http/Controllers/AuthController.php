@@ -37,7 +37,7 @@ class AuthController extends Controller
         $codigo_dactilar = $request->input('codigo_dactilar');
 
         // Buscar en InformacionPersonald (Docente)
-        $resdocen = InformacionPersonald::select('CIInfPer', 'LoginUsu', 'ClaveUsu', 'ApellInfPer', 'mailPer')
+        $resdocen = InformacionPersonald::select('CIInfPer', 'LoginUsu', 'ClaveUsu', 'ApellInfPer', 'mailPer','TipoInfPer')
             ->where('LoginUsu', $CIInfPer)
             ->where('StatusPer', 1)
             ->first();
@@ -69,7 +69,7 @@ class AuthController extends Controller
                         'name' => $resdocen->ApellInfPer,
                         'CIInfPer' => $resdocen->CIInfPer,
                         'password' => bcrypt($codigo_dactilar),
-                        'role' => 'Docente',
+                        'role' => $resdocen->TipoInfPer,
                         'estado' => 1,
                     ]
                 );
@@ -81,7 +81,7 @@ class AuthController extends Controller
 
                 return response()->json([
                     'mensaje' => 'Autenticación exitosa',
-                    'Rol' => 'Docente',
+                    'Rol' => $resdocen->TipoInfPer,
                     'CIInfPer' => $resdocen->CIInfPer,
                     'ApellInfPer' => $resdocen->ApellInfPer,
                     'mailPer' => $resdocen->mailPer,

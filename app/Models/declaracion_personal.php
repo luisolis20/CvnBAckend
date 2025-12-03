@@ -19,5 +19,9 @@ class declaracion_personal extends Model
     {
         return $this->belongsTo(informacionpersonal::class, 'CIInfPer');
     }
+    public function infoperdoc()
+    {
+        return $this->belongsTo(InformacionPersonald::class, 'CIInfPer');
+    }
     
 }

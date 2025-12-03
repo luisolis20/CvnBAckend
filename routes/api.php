@@ -26,6 +26,8 @@ use App\Http\Controllers\DeclaracionPersonalConsulta;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RegistroTituloController;
 use App\Http\Controllers\CvnValidacionController;
+use App\Http\Controllers\Declaracion_PersonalDocentesController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -45,18 +47,18 @@ Route::prefix('cvn')->group(function () {
 
     //Route::post('/login', [UserController::class, 'login']);
     //Route::post('/login2', [InformacionPersonalController::class, 'login']);
-    Route::post('v1/enviar-correo', [CorreoController::class, 'enviarCorreo']);
-    Route::post('v1/enviar-comentario', [EnviarComentarioController::class, 'enviarComentario']);
-    Route::post('v1/recuperar-clave', [RecuperarClaveController::class, 'recuperarclave']);
+    Route::post('v1/enviar-correo', [CorreoController::class, 'enviarCorreo'])->middleware('throttle:10000,1');
+    Route::post('v1/enviar-comentario', [EnviarComentarioController::class, 'enviarComentario'])->middleware('throttle:10000,1');
+    Route::post('v1/recuperar-clave', [RecuperarClaveController::class, 'recuperarclave'])->middleware('throttle:10000,1');
     
-    Route::get('v1/verificar/{codigo}', [CvnValidacionController::class, 'verificar']);
-    Route::get('v1/verficiar_cvn/{codigo}', [InformacionPersonalController::class, 'verificar']);
-    Route::get('v1/cvcompleto/{codigo}', [InformacionPersonalController::class, 'getCvCompleto']);
-    Route::get('v1/obtenerdata', [InformacionPersonalController::class, 'obtenerdata']);
-    Route::put('v1/actualizarFoto/{codigo}', [InformacionPersonalController::class, 'actualizarFoto']);
-    Route::get('v1/infromaciondata/{id}', [InformacionPersonalController::class, 'show']);
-    Route::get('v1/getCVNstatusInd/{id}', [InformacionPersonalController::class, 'getCVNstatusInd']);
-    Route::get('/v1/informacionpersonal/{ci}/foto', [InformacionPersonalController::class, 'getFotografia']);
+    Route::get('v1/verificar/{codigo}', [CvnValidacionController::class, 'verificar'])->middleware('throttle:10000,1');
+    Route::get('v1/verficiar_cvn/{codigo}', [InformacionPersonalController::class, 'verificar'])->middleware('throttle:10000,1');
+    Route::get('v1/cvcompleto/{codigo}', [InformacionPersonalController::class, 'getCvCompleto'])->middleware('throttle:10000,1');
+    Route::get('v1/obtenerdata', [InformacionPersonalController::class, 'obtenerdata'])->middleware('throttle:10000,1');
+    Route::put('v1/actualizarFoto/{codigo}', [InformacionPersonalController::class, 'actualizarFoto'])->middleware('throttle:10000,1');
+    Route::get('v1/infromaciondata/{id}', [InformacionPersonalController::class, 'show'])->middleware('throttle:10000,1');
+    Route::get('v1/getCVNstatusInd/{id}', [InformacionPersonalController::class, 'getCVNstatusInd'])->middleware('throttle:10000,1');
+    Route::get('/v1/informacionpersonal/{ci}/foto', [InformacionPersonalController::class, 'getFotografia'])->middleware('throttle:10000,1');
     //Login
     
     //Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
@@ -65,30 +67,31 @@ Route::prefix('cvn')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('logout', [AuthController::class, 'logout'])->name('logout');
-        Route::apiResource("v1/users", UserController::class);
-        Route::apiResource('v1/formacion_academica', FormacionAcademicaController::class);
-        Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class);
-        Route::put('v1/eliminar/{id}', [UserController::class, 'eliminarus']);
-        Route::apiResource('v1/datos_personales', DatosPersonalesController::class);
-        Route::apiResource('v1/declaracion_personal', DeclaracionPersonalController::class);
-        Route::apiResource('v1/experiencia_profesionale', Experiencia_ProController::class);
-        Route::apiResource('v1/habilidades_informatica', HabilidadesInformaticaController::class);
-        Route::apiResource('v1/idioma', IdiomaController::class);
-        Route::apiResource('v1/informacion_contacto', InformacionContactoController::class);
-        Route::apiResource('v1/investigacion_publicacione', InvestigacionPublicacionesController::class);
-        Route::apiResource('v1/otros_datos_relevante', OtrosDatosController::class);
-        Route::apiResource('v1/cursoscapacitacion', CursoCapacitaciones::class);
-        Route::apiResource('v1/fichasocioeconomica', FichaSocioEconomicaController::class);
-        Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class);
-        Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog']);
-        Route::get('v1/checkUpdateStatus/{CIInfPer}', [InformacionPersonalController::class, 'checkUpdateStatus']);
-        Route::get('v1/titulogPosgrados/{id}', [RegistroTituloController::class, 'titulogPosgrados']);
-        Route::post('v1/validar', [CvnValidacionController::class, 'store']);
-        Route::get('v1/historialDe/{id}', [CvnValidacionController::class, 'show']);
+        Route::apiResource("v1/users", UserController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/formacion_academica', FormacionAcademicaController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/informacionpersonal', InformacionPersonalController::class)->middleware('throttle:10000,1');
+        Route::put('v1/eliminar/{id}', [UserController::class, 'eliminarus'])->middleware('throttle:10000,1');
+        Route::apiResource('v1/datos_personales', DatosPersonalesController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/declaracion_personal', DeclaracionPersonalController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/experiencia_profesionale', Experiencia_ProController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/habilidades_informatica', HabilidadesInformaticaController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/idioma', IdiomaController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/informacion_contacto', InformacionContactoController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/investigacion_publicacione', InvestigacionPublicacionesController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/otros_datos_relevante', OtrosDatosController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/cursoscapacitacion', CursoCapacitaciones::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/fichasocioeconomica', FichaSocioEconomicaController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/sicvn', DeclaracionPersonalConsulta::class)->middleware('throttle:10000,1');
+        Route::get('v1/titulog/{id}', [RegistroTituloController::class, 'titulog'])->middleware('throttle:10000,1');
+        Route::get('v1/checkUpdateStatus/{CIInfPer}', [InformacionPersonalController::class, 'checkUpdateStatus'])->middleware('throttle:10000,1');
+        Route::get('v1/titulogPosgrados/{id}', [RegistroTituloController::class, 'titulogPosgrados'])->middleware('throttle:10000,1');
+        Route::post('v1/validar', [CvnValidacionController::class, 'store'])->middleware('throttle:10000,1');
+        Route::get('v1/historialDe/{id}', [CvnValidacionController::class, 'show'])->middleware('throttle:10000,1');
         
         //Docentes
         
-        Route::apiResource('v1/informacionpersonald', InformacionPersonal_DController::class);
+        Route::apiResource('v1/informacionpersonald', InformacionPersonal_DController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/declaracion_personalD', Declaracion_PersonalDocentesController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/publicacion_art_docente', Publicacion_articulo_docenteController::class);
         Route::apiResource('v1/publicacion_lb_docente', Publicacion_Libro_DocenteController::class);
         Route::apiResource('v1/capacitacion_docente', CapacitacionDocentesController::class);
