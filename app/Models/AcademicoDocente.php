@@ -44,6 +44,10 @@ class AcademicoDocente extends Model
     {
         return $this->belongsTo(InformacionPersonald::class, 'ciinfper', 'CIInfPer');
     }
+    public function institucion()
+    {
+        return $this->belongsTo(InstEducSup::class, 'ad_institucion', 'cod_ies');
+    }
     public function nivel()
     {
         return $this->belongsTo(Nivel::class, 'nv_id', 'nv_id');
@@ -51,5 +55,13 @@ class AcademicoDocente extends Model
     public function pais()
     {
         return $this->belongsTo(Pais::class, 'cod_pais', 'ad_pais');
+    }
+    public function periodolectivo()
+    {
+        return $this->belongsTo(PeriodoLectivo::class, 'idper', 'idper');
+    }
+    public function subareaUnesco()
+    {
+        return $this->belongsTo(SubareaUnesco::class, 'sub_area_conocimiento', 'sau_id');
     }
 }
