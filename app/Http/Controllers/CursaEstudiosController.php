@@ -120,6 +120,7 @@ class CursaEstudiosController extends Controller
             ->join('pais', 'pais.cod_pais', '=', 'cursa_estudios.ec_pais')
             ->join('nivel', 'nivel.nv_id', '=', 'cursa_estudios.nv_id')
             ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'cursa_estudios.ec_sub_area_conocimiento')
+            ->where('nivel.nv_numnivel', 3)
             ->where('informacionpersonal_d.CIInfPer', $id)
             ->paginate(20);
 

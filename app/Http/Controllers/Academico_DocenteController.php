@@ -120,7 +120,60 @@ class Academico_DocenteController extends Controller
             ->join('pais', 'pais.cod_pais', '=', 'academico_docente.ad_pais')
             ->join('nivel', 'nivel.nv_id', '=', 'academico_docente.nv_id')
             ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'academico_docente.sub_area_conocimiento')
-            ->where('academico_docente.nv_id', 3)
+            ->where('nivel.nv_numnivel', 3)
+            ->where('informacionpersonal_d.CIInfPer', $id)
+            ->paginate(20);
+
+        if ($data->isEmpty()) {
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron datos para el ID especificado',
+            ], 200);
+        }
+
+        // Convertir los campos a UTF-8 válido para cada página
+        $data->getCollection()->transform(function ($item) {
+            $attributes = $item->getAttributes();
+            foreach ($attributes as $key => $value) {
+                if (is_string($value)) {
+                    $attributes[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            }
+
+            return $attributes;
+        });
+
+        // Retornar la respuesta JSON con los metadatos de paginación
+        try {
+            return response()->json([
+                'data' => $data->items(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'total' => $data->total(),
+                'last_page' => $data->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al codificar los datos a JSON: ' . $e->getMessage()], 500);
+        }
+    }
+    public function titulospopsgradog(string $id)
+    {
+        $data = AcademicoDocente::select(
+            'academico_docente.*',
+            'informacionpersonal_d.ApellInfPer',
+            'informacionpersonal_d.ApellMatInfPer',
+            'informacionpersonal_d.NombInfPer',
+            'inst_educ_sup.*',
+            'pais.*',
+            'nivel.*',
+            'subarea_unesco.*',
+        )
+            ->join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'academico_docente.ciinfper')
+            ->join('inst_educ_sup', 'inst_educ_sup.cod_ies', '=', 'academico_docente.ad_institucion')
+            ->join('pais', 'pais.cod_pais', '=', 'academico_docente.ad_pais')
+            ->join('nivel', 'nivel.nv_id', '=', 'academico_docente.nv_id')
+            ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'academico_docente.sub_area_conocimiento')
+            ->where('nivel.nv_numnivel', 4)
             ->where('informacionpersonal_d.CIInfPer', $id)
             ->paginate(20);
 
