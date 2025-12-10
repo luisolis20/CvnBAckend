@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademicoDocente;
+use App\Models\CursaEstudios;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
-class Academico_DocenteController extends Controller
+class CursaEstudiosController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -14,8 +14,8 @@ class Academico_DocenteController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = AcademicoDocente::select(
-                'academico_docente.*',
+            $query = CursaEstudios::select(
+                'cursa_estudios.*',
                 'informacionpersonal_d.ApellInfPer',
                 'informacionpersonal_d.ApellMatInfPer',
                 'informacionpersonal_d.NombInfPer',
@@ -25,12 +25,12 @@ class Academico_DocenteController extends Controller
                 'periodolectivo.*',
                 'subarea_unesco.*',
             )
-                ->join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'academico_docente.ciinfper')
-                ->join('inst_educ_sup', 'inst_educ_sup.cod_ies', '=', 'academico_docente.ad_institucion')
-                ->join('pais', 'pais.cod_pais', '=', 'academico_docente.ad_pais')
-                ->join('nivel', 'nivel.nv_id', '=', 'academico_docente.nv_id')
-                ->join('periodolectivo', 'periodolectivo.idper', '=', 'academico_docente.idper')
-                ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'academico_docente.sub_area_conocimiento');
+                ->join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'cursa_estudios.ciinfper')
+                ->join('inst_educ_sup', 'inst_educ_sup.cod_ies', '=', 'cursa_estudios.ec_institucion')
+                ->join('pais', 'pais.cod_pais', '=', 'cursa_estudios.ec_pais')
+                ->join('nivel', 'nivel.nv_id', '=', 'cursa_estudios.nv_id')
+                ->join('periodolectivo', 'periodolectivo.idper', '=', 'cursa_estudios.idper')
+                ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'cursa_estudios.ec_sub_area_conocimiento');
             // Verificar si se solicita todos los datos sin paginación
             if ($request->has('all') && $request->all === 'true') {
                 $data = $query->get();
@@ -93,7 +93,7 @@ class Academico_DocenteController extends Controller
         $inputs = $request->input();
 
 
-        $res = AcademicoDocente::create($inputs);
+        $res = CursaEstudios::create($inputs);
         return response()->json([
             'data' => $res,
             'mensaje' => "Agregado con Éxito!!",
@@ -105,8 +105,8 @@ class Academico_DocenteController extends Controller
      */
     public function show(string $id)
     {
-        $data = AcademicoDocente::select(
-            'academico_docente.*',
+        $data = CursaEstudios::select(
+            'cursa_estudios.*',
             'informacionpersonal_d.ApellInfPer',
             'informacionpersonal_d.ApellMatInfPer',
             'informacionpersonal_d.NombInfPer',
@@ -115,12 +115,11 @@ class Academico_DocenteController extends Controller
             'nivel.*',
             'subarea_unesco.*',
         )
-            ->join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'academico_docente.ciinfper')
-            ->join('inst_educ_sup', 'inst_educ_sup.cod_ies', '=', 'academico_docente.ad_institucion')
-            ->join('pais', 'pais.cod_pais', '=', 'academico_docente.ad_pais')
-            ->join('nivel', 'nivel.nv_id', '=', 'academico_docente.nv_id')
-            ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'academico_docente.sub_area_conocimiento')
-            ->where('academico_docente.nv_id', 3)
+            ->join('informacionpersonal_d', 'informacionpersonal_d.CIInfPer', '=', 'cursa_estudios.ciinfper')
+            ->join('inst_educ_sup', 'inst_educ_sup.cod_ies', '=', 'cursa_estudios.ec_institucion')
+            ->join('pais', 'pais.cod_pais', '=', 'cursa_estudios.ec_pais')
+            ->join('nivel', 'nivel.nv_id', '=', 'cursa_estudios.nv_id')
+            ->join('subarea_unesco', 'subarea_unesco.sau_id', '=', 'cursa_estudios.ec_sub_area_conocimiento')
             ->where('informacionpersonal_d.CIInfPer', $id)
             ->paginate(20);
 
@@ -162,22 +161,22 @@ class Academico_DocenteController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $res = AcademicoDocente::find($id);
+        $res = CursaEstudios::find($id);
         if (isset($res)) {
             $res->ciinfper = $request->ciinfper;
             $res->idper = $request->idper;
-            $res->ad_titulo = $request->ad_titulo;
-            $res->ad_institucion = $request->ad_institucion;
-            $res->ad_pais = $request->ad_pais;
-            $res->ad_fecha_titulo = $request->ad_fecha_titulo;
-            $res->ad_regconesup = $request->ad_regconesup;
-            $res->fecha_reg_conesup = $request->fecha_reg_conesup;
-            $res->sub_area_conocimiento = $request->sub_area_conocimiento;
-            $res->ad_estado = $request->ad_estado;
+            $res->ec_numdoc = $request->ec_numdoc;
+            $res->ec_titulo = $request->ec_titulo;
+            $res->ec_institucion = $request->ec_institucion;
+            $res->ec_pais = $request->ec_pais;
+            $res->ec_fecha_inicia = $request->ec_fecha_inicia;
+            $res->ec_fecha_termina = $request->ec_fecha_termina;
+            $res->ec_sub_area_conocimiento = $request->ec_sub_area_conocimiento;
+            $res->ec_estado = $request->ec_estado;
             $res->ultima_actualizacion = $request->ultima_actualizacion;
             $res->nv_id = $request->nv_id;
-            $res->ad_archivo = $request->ad_archivo;
-            $res->cod_ies = $request->cod_ies;
+            $res->ec_archivo = $request->ec_archivo;
+            $res->ec_inst_financia = $request->ec_inst_financia;
             if ($res->save()) {
                 return response()->json([
                     'data' => $res,
@@ -192,7 +191,7 @@ class Academico_DocenteController extends Controller
         } else {
             return response()->json([
                 'error' => true,
-                'mensaje' => "Academico Docente con id: $id no Existe",
+                'mensaje' => "Cursa Estudios con id: $id no Existe",
             ]);
         }
     }
@@ -202,9 +201,9 @@ class Academico_DocenteController extends Controller
      */
     public function destroy(string $id)
     {
-        $res = AcademicoDocente::find($id);
+        $res = CursaEstudios::find($id);
         if (isset($res)) {
-            $elim = AcademicoDocente::destroy($id);
+            $elim = CursaEstudios::destroy($id);
             if ($elim) {
                 return response()->json([
                     'data' => $res,
@@ -213,17 +212,17 @@ class Academico_DocenteController extends Controller
             } else {
                 return response()->json([
                     'data' => $res,
-                    'mensaje' => "Academico Docente no existe (puede que ya la haya eliminado)",
+                    'mensaje' => "Cursa Estudios no existe (puede que ya la haya eliminado)",
                 ]);
             }
         } else {
             return response()->json([
                 'error' => true,
-                'mensaje' => "Academico Docente con id: $id no Existe",
+                'mensaje' => "Cursa Estudios con id: $id no Existe",
             ]);
         }
     }
-    public function uploadTitulo(Request $request)
+    public function uploadCursaEstudios(Request $request)
     {
         $request->validate([
             'file' => 'required|mimes:pdf|max:10240', // 10MB
@@ -235,7 +234,7 @@ class Academico_DocenteController extends Controller
             $ci   = $request->ci;
 
             // Crear carpeta si no existe
-            $directory = public_path('titulos_universitarios_CVN/' . $ci);
+            $directory = public_path('cursa_estudios_CVN/' . $ci);
 
             if (!File::exists($directory)) {
                 File::makeDirectory($directory, 0777, true, true);
@@ -252,7 +251,7 @@ class Academico_DocenteController extends Controller
             $file->move($directory, $filename);
 
             // URL pública
-            $url = url('titulos_universitarios_CVN/' . $ci . '/' . $filename);
+            $url = url('cursa_estudios_CVN/' . $ci . '/' . $filename);
 
             return response()->json([
                 'status'   => true,

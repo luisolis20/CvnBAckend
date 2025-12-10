@@ -33,6 +33,7 @@ use App\Http\Controllers\Inst_Ed_SupController;
 use App\Http\Controllers\NivelController;
 use App\Http\Controllers\SubAreaUnescoController;
 use App\Http\Controllers\PaisController;
+use App\Http\Controllers\CursaEstudiosController;
 
 
 
@@ -100,12 +101,14 @@ Route::prefix('cvn')->group(function () {
         Route::apiResource('v1/informacionpersonald', InformacionPersonal_DController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/declaracion_personalD', Declaracion_PersonalDocentesController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/academico_docente', Academico_DocenteController::class)->middleware('throttle:10000,1');
+        Route::apiResource('v1/cursa_estudios', CursaEstudiosController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/inst_educ_sup', Inst_Ed_SupController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/nivel', NivelController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/pais', PaisController::class)->middleware('throttle:10000,1');
         Route::apiResource('v1/subarea_conocimiento', SubAreaUnescoController::class)->middleware('throttle:10000,1');
         Route::get('v1/periodos_activos', [PeriodoLectivoController::class, 'getActivos'])->middleware('throttle:10000,1');
         Route::post('v1/upload_titulo', [Academico_DocenteController::class, 'uploadTitulo'])->middleware('throttle:10000,1');
+        Route::post('v1/upload_cursa', [CursaEstudiosController::class, 'uploadCursaEstudios'])->middleware('throttle:10000,1');
         Route::apiResource('v1/publicacion_art_docente', Publicacion_articulo_docenteController::class);
         Route::apiResource('v1/publicacion_lb_docente', Publicacion_Libro_DocenteController::class);
         Route::apiResource('v1/capacitacion_docente', CapacitacionDocentesController::class);
