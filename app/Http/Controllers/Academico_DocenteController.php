@@ -321,4 +321,49 @@ class Academico_DocenteController extends Controller
             ], 500);
         }
     }
+    public function uploadTituloposgrado(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:pdf|max:10240', // 10MB
+            'ci'   => 'required'
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $ci   = $request->ci;
+
+            // Crear carpeta si no existe
+            $directory = public_path('titulos_posgrado_CVN/' . $ci);
+
+            if (!File::exists($directory)) {
+                File::makeDirectory($directory, 0777, true, true);
+            }
+
+            // Generar nombre: CI + _ + aleatorio + _ + fecha (Ymd_His)
+            $aleatorio = bin2hex(random_bytes(8)); // 16 caracteres hex
+            $fechaHora = date("Ymd_His");          // Ej: 20251112_1741
+            $extension = $file->getClientOriginalExtension(); // pdf
+
+            $filename = "{$ci}_{$aleatorio}_{$fechaHora}.{$extension}";
+
+            // Guardar archivo
+            $file->move($directory, $filename);
+
+            // URL pública
+            $url = url('titulos_posgrado_CVN/' . $ci . '/' . $filename);
+
+            return response()->json([
+                'status'   => true,
+                'filename' => $filename,
+                'url'      => $url
+            ]);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error guardando archivo',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -110,6 +110,7 @@ Route::prefix('cvn')->group(function () {
         Route::get('v1/titulospopsgradog', [Academico_DocenteController::class, 'titulospopsgradog'])->middleware('throttle:10000,1');
         Route::get('v1/nivel_posgrado', [NivelController::class, 'nivel_posgrado'])->middleware('throttle:10000,1');
         Route::post('v1/upload_titulo', [Academico_DocenteController::class, 'uploadTitulo'])->middleware('throttle:10000,1');
+        Route::post('v1/uploadTituloposgrado', [Academico_DocenteController::class, 'uploadTituloposgrado'])->middleware('throttle:10000,1');
         Route::post('v1/upload_cursa', [CursaEstudiosController::class, 'uploadCursaEstudios'])->middleware('throttle:10000,1');
         Route::apiResource('v1/publicacion_art_docente', Publicacion_articulo_docenteController::class);
         Route::apiResource('v1/publicacion_lb_docente', Publicacion_Libro_DocenteController::class);
